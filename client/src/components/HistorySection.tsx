@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function HistorySection() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   const {
     data: identifications,
@@ -46,10 +47,8 @@ export default function HistorySection() {
         <CardContent className="p-6 md:p-8">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-heading font-semibold">Recent Identifications</h3>
-            <Link href="/history">
-              <a className="text-primary hover:text-primary-dark font-medium transition-colors">
-                View All History
-              </a>
+            <Link href="/history" className="text-primary hover:text-primary-dark font-medium transition-colors">
+              View All History
             </Link>
           </div>
 

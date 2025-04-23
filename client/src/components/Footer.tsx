@@ -20,18 +20,18 @@ export default function Footer() {
             <h5 className="font-heading font-semibold mb-4">Quick Links</h5>
             <ul className="text-sm space-y-2">
               <li>
-                <Link href="/">
-                  <a className="text-neutral-dark hover:text-primary transition-colors">Home</a>
+                <Link href="/" className="text-neutral-dark hover:text-primary transition-colors">
+                  Home
                 </Link>
               </li>
               <li>
-                <Link href="/about">
-                  <a className="text-neutral-dark hover:text-primary transition-colors">About</a>
+                <Link href="/about" className="text-neutral-dark hover:text-primary transition-colors">
+                  About
                 </Link>
               </li>
               <li>
-                <Link href="/history">
-                  <a className="text-neutral-dark hover:text-primary transition-colors">History</a>
+                <Link href="/history" className="text-neutral-dark hover:text-primary transition-colors">
+                  History
                 </Link>
               </li>
               <li>

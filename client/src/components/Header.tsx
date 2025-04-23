@@ -15,8 +15,8 @@ export default function Header() {
             <div className="text-primary mr-2">
               <Leaf className="h-8 w-8" />
             </div>
-            <Link href="/">
-              <a className="text-2xl md:text-3xl font-heading font-bold text-primary">PlantID</a>
+            <Link href="/" className="text-2xl md:text-3xl font-heading font-bold text-primary">
+              PlantID
             </Link>
           </div>
           
@@ -24,24 +24,18 @@ export default function Header() {
           <nav className="hidden md:block">
             <ul className="flex space-x-6">
               <li>
-                <Link href="/">
-                  <a className={`font-heading font-medium ${location === "/" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
-                    Home
-                  </a>
+                <Link href="/" className={`font-heading font-medium ${location === "/" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
+                  Home
                 </Link>
               </li>
               <li>
-                <Link href="/history">
-                  <a className={`font-heading font-medium ${location === "/history" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
-                    History
-                  </a>
+                <Link href="/history" className={`font-heading font-medium ${location === "/history" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
+                  History
                 </Link>
               </li>
               <li>
-                <Link href="/about">
-                  <a className={`font-heading font-medium ${location === "/about" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
-                    About
-                  </a>
+                <Link href="/about" className={`font-heading font-medium ${location === "/about" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
+                  About
                 </Link>
               </li>
             </ul>
@@ -67,33 +61,30 @@ export default function Header() {
           <nav className="md:hidden mt-4 py-2 bg-white">
             <ul className="space-y-3">
               <li>
-                <Link href="/">
-                  <a 
-                    className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Home
-                  </a>
+                <Link 
+                  href="/"
+                  className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Home
                 </Link>
               </li>
               <li>
-                <Link href="/history">
-                  <a 
-                    className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/history" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    History
-                  </a>
+                <Link 
+                  href="/history"
+                  className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/history" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  History
                 </Link>
               </li>
               <li>
-                <Link href="/about">
-                  <a 
-                    className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/about" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    About
-                  </a>
+                <Link 
+                  href="/about"
+                  className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/about" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  About
                 </Link>
               </li>
             </ul>
