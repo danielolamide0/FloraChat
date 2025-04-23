@@ -94,7 +94,9 @@ export default function HistorySection() {
                         <p className="text-sm text-neutral-dark">{item.commonName}</p>
                       </td>
                       <td className="py-2 px-4 text-sm">
-                        {new Date(item.identifiedAt).toLocaleDateString()}
+                        {item.identifiedAt 
+                          ? new Date(item.identifiedAt.toString()).toLocaleDateString() 
+                          : 'N/A'}
                       </td>
                       <td className="py-2 px-4">
                         <div className="bg-primary-light text-white text-xs px-3 py-1 rounded-full inline-block">
@@ -105,7 +107,7 @@ export default function HistorySection() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => window.location.href = `/identification/${item.id}`}
+                          onClick={() => setLocation(`/identification/${item.id}`)}
                           className="text-primary hover:text-primary-dark mr-2"
                         >
                           <Eye className="h-4 w-4" />
