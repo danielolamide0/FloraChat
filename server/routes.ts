@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { plantIdentificationResultSchema } from "@shared/schema";
 import { z } from "zod";
+import { OpenAI } from 'openai';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -13,7 +14,7 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: any, file: any, cb: any) => {
     // Accept only image files
     const filetypes = /jpeg|jpg|png|webp/;
     const mimetype = filetypes.test(file.mimetype);
@@ -31,7 +32,7 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Identify plant from image
-  app.post("/api/identify", upload.single("image"), async (req, res) => {
+  app.post("/api/identify", upload.single("image"), async (req: any, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
@@ -91,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all plant identifications
-  app.get("/api/identifications", async (_req, res) => {
+  app.get("/api/identifications", async (_req: Request, res: Response) => {
     try {
       const identifications = await storage.getAllPlantIdentifications();
       res.status(200).json(identifications);
@@ -102,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific plant identification
-  app.get("/api/identifications/:id", async (req, res) => {
+  app.get("/api/identifications/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -122,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new plant identification
-  app.post("/api/identifications", async (req, res) => {
+  app.post("/api/identifications", async (req: Request, res: Response) => {
     try {
       const schema = z.object({
         scientificName: z.string(),
@@ -188,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a plant identification
-  app.delete("/api/identifications/:id", async (req, res) => {
+  app.delete("/api/identifications/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -207,40 +208,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Initialize OpenAI client
+  let openai: OpenAI | undefined;
+  try {
+    if (process.env.OPENAI_API_KEY) {
+      openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+      console.log("OpenAI client initialized successfully");
+    } else {
+      console.log("No OpenAI API key found. Chat functionality will be disabled.");
+    }
+  } catch (error) {
+    console.error("Failed to initialize OpenAI client:", error);
+  }
+
+  // Add chat endpoint - Context-aware plant chatbot
+  app.post('/api/chat', async (req: Request, res: Response) => {
+    try {
+      // Check if OpenAI client is available
+      if (!openai) {
+        return res.status(503).json({ 
+          message: "Chat functionality is currently unavailable. Please provide an OpenAI API key to enable this feature.",
+          error: "OpenAI API key not configured" 
+        });
+      }
+      
+      const { message, context } = req.body as { 
+        message: string, 
+        context: { 
+          hasImage: boolean, 
+          hasResults: boolean, 
+          plantDetails?: { 
+            name: string, 
+            commonName: string 
+          } 
+        } 
+      };
+
+      let systemPrompt = "You are a helpful plant expert chatbot. ";
+      if (!context.hasImage) {
+        systemPrompt += "The user hasn't uploaded any plant image yet. Encourage them to upload one for identification.";
+      } else if (!context.hasResults) {
+        systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting.";
+      } else if (context.plantDetails) {
+        systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). You can provide specific information about this plant.`;
+      }
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
+        ],
+      });
+
+      res.json({ message: completion.choices[0].message.content });
+    } catch (error) {
+      console.error('Chat error:', error);
+      res.status(500).json({ error: 'Failed to process chat message' });
+    }
+  });
+  
   const httpServer = createServer(app);
   return httpServer;
 }
-import { OpenAI } from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Add this to your existing routes
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { message, context } = req.body;
-
-    let systemPrompt = "You are a helpful plant expert chatbot. ";
-    if (!context.hasImage) {
-      systemPrompt += "The user hasn't uploaded any plant image yet. Encourage them to upload one for identification.";
-    } else if (!context.hasResults) {
-      systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting.";
-    } else {
-      systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). You can provide specific information about this plant.`;
-    }
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message }
-      ],
-    });
-
-    res.json({ message: completion.choices[0].message.content });
-  } catch (error) {
-    console.error('Chat error:', error);
-    res.status(500).json({ error: 'Failed to process chat message' });
-  }
-});
