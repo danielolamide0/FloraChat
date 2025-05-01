@@ -10,6 +10,7 @@ import { OpenAI } from 'openai';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import { uploadImageToFirebase, isFirebaseConfigured } from './firebase';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -51,12 +52,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Processing plant identification request...");
       
-      // Save the uploaded image to a temporary file
+      // Create temporary file paths (without __dirname which isn't available in ES modules)
       const tempFileName = `${uuidv4()}.${req.file.originalname.split('.').pop()}`;
-      const tempFilePath = path.join(__dirname, '..', 'temp', tempFileName);
+      const tempFilePath = path.join('temp', tempFileName);
       
       // Ensure the temp directory exists
-      const tempDir = path.join(__dirname, '..', 'temp');
+      const tempDir = 'temp';
       if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
       }
@@ -127,8 +128,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
         };
         
-        // Save the identification to storage
+        // Save the identification to storage with Firebase for images
         try {
+          let imageUrl;
+          
+          // Check if Firebase is configured for image storage
+          if (isFirebaseConfigured()) {
+            try {
+              // Upload image to Firebase Storage
+              const firebaseFileName = `plant-${uuidv4()}.${req.file.originalname.split('.').pop()}`;
+              imageUrl = await uploadImageToFirebase(
+                req.file.buffer,
+                firebaseFileName,
+                req.file.mimetype
+              );
+              console.log("Image uploaded to Firebase:", imageUrl);
+            } catch (firebaseError) {
+              console.error("Failed to upload image to Firebase:", firebaseError);
+              // Fallback to data URL
+              imageUrl = `data:image/${req.file.mimetype.split('/')[1]};base64,${req.file.buffer.toString('base64')}`;
+            }
+          } else {
+            // Firebase not configured, use data URL
+            console.log("Firebase not configured. Using data URL for image storage.");
+            imageUrl = `data:image/${req.file.mimetype.split('/')[1]};base64,${req.file.buffer.toString('base64')}`;
+          }
+
+          // Save identification to application storage
           const createdId = await storage.createPlantIdentification({
             scientificName: identificationResult.scientificName,
             commonName: identificationResult.commonName,
@@ -139,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             distribution: identificationResult.distribution,
             habitat: identificationResult.habitat,
             description: identificationResult.description,
-            imageUrl: `data:image/${req.file.mimetype.split('/')[1]};base64,${req.file.buffer.toString('base64')}`
+            imageUrl: imageUrl
           });
           
           // Add similar plants
