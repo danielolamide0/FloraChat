@@ -189,7 +189,34 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
                       : 'bg-neutral-100 dark:bg-gray-800'
                   }`}
                 >
-                  {message.content}
+                  {message.role === 'assistant' 
+                    ? message.content.split('\n').map((line, i) => {
+                        // Check if the line starts with a bullet point or is a section header
+                        const isBulletPoint = line.trim().startsWith('•');
+                        
+                        // Improved header detection - look for exact headers we expect
+                        const knownHeaders = ['Identifying Features:', 'Habitat:', 'Important Notes:'];
+                        const isHeader = knownHeaders.includes(line.trim()) || 
+                                        (line.trim().endsWith(':') && line.trim().length > 0 && !isBulletPoint);
+                        
+                        // First line is usually the plant name intro
+                        const isIntro = i === 0 && line.includes('appears to be');
+                        
+                        return (
+                          <div key={i} className={`
+                            ${i > 0 ? 'mt-2' : ''} 
+                            ${isHeader ? 'font-bold text-lg mt-4 mb-2' : ''}
+                            ${isIntro ? 'font-medium mb-3' : ''}
+                          `}>
+                            {line.trim() === '' ? <br /> : (
+                              isBulletPoint ? 
+                                <span className="block pl-3 border-l-2 border-primary ml-2 py-1">{line}</span> : 
+                                line
+                            )}
+                          </div>
+                        );
+                      })
+                    : message.content}
                 </div>
               </div>
             ))}
