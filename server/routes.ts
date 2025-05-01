@@ -366,7 +366,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (!context.hasResults) {
         systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting, such as gardening techniques, plant care tips, or seasonal gardening information.";
       } else if (context.plantDetails) {
-        systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). Provide specific information about this plant, including care requirements, growing conditions, common issues, propagation methods, and interesting facts. Be conversational and enthusiastic about plants.`;
+        systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). 
+        
+Provide a concise, structured summary of this plant with the following format:
+
+1. Begin with a brief opening sentence identifying the plant with its scientific and common name
+2. List key identifying features in bullet points or short phrases: flower color/shape, leaf structure, growth habit, etc.
+3. Include a section on habitat/where it's commonly found
+4. Include an "Important Notes" section with brief bullet points about toxicity (if applicable), care requirements, or other significant information
+5. End with a simple question offering to help with additional identification or information
+
+Keep your response under 200 words, focused on practical identification and key facts rather than lengthy descriptions. Use a friendly but professional tone.`;
       }
 
       const completion = await openai.chat.completions.create({

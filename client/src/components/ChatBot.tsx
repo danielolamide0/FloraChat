@@ -77,7 +77,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: `I just identified a plant as ${identificationResults.scientificName} (${identificationResults.commonName}). Please create a brief summary of this plant and ask me if I have any questions about it.`,
+          message: `I just identified a plant as ${identificationResults.scientificName} (${identificationResults.commonName}). Please provide a concise, structured summary of this plant with key identifying features, habitat, and important notes.`,
           context
         }),
       });
