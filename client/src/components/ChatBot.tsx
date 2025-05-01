@@ -78,7 +78,8 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
         },
         body: JSON.stringify({
           message: `Please provide a structured plant identification summary for ${identificationResults.scientificName} (${identificationResults.commonName}) with identifying features, habitat, and important notes following the exact template format.`,
-          context
+          context,
+          conversation: messages
         }),
       });
       
@@ -119,6 +120,9 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
         } : null
       };
 
+      // Get the updated messages array that includes the new user message
+      const updatedMessages = [...messages, { role: 'user', content: userMessage }];
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -126,7 +130,8 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
         },
         body: JSON.stringify({
           message: userMessage,
-          context
+          context,
+          conversation: updatedMessages
         }),
       });
 

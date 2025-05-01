@@ -378,7 +378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { message, context } = req.body as { 
+      const { message, context, conversation } = req.body as { 
         message: string, 
         context: { 
           hasImage: boolean, 
@@ -387,15 +387,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: string, 
             commonName: string 
           } 
-        } 
+        },
+        conversation: Array<{role: 'user' | 'assistant', content: string}>
       };
 
+      // Define the base system prompt
       let systemPrompt = "You are a helpful plant expert chatbot with deep knowledge of gardening, botany, and plant care. ";
+      
+      // Initial context-specific prompts
       if (!context.hasImage) {
         systemPrompt += "The user hasn't uploaded any plant image yet. Encourage them to upload one for identification, but also provide helpful gardening tips or plant care advice if they ask.";
       } else if (!context.hasResults) {
         systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting, such as gardening techniques, plant care tips, or seasonal gardening information.";
-      } else if (context.plantDetails) {
+      } else if (context.plantDetails && conversation.length <= 2) {
+        // Only provide the structured format for the FIRST response after plant identification
         systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). 
 
 Provide an extremely structured and concise plant identification summary using EXACTLY this format:
@@ -419,14 +424,36 @@ Important Notes:
 [End with a single simple question offering further help]
 
 IMPORTANT: Use this exact structure with these exact headers. Keep bullet points very concise (1-2 lines each). Do not use markdown formatting like **bold** or *italics*. Keep the entire response under 200 words total.`;
+      } else if (context.plantDetails) {
+        // For ongoing conversation after initial plant identification
+        systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). 
+        
+Now have a natural, conversational discussion about this plant or any other gardening topics the user wants to discuss. 
+Be helpful and informative but avoid repeating the structured format info unless specifically asked for more details. 
+Respond directly to the user's questions in a conversational way.`;
       }
 
+      // Create messages array starting with system prompt
+      const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
+        { role: "system", content: systemPrompt }
+      ];
+
+      // Add conversation history if it exists and has content
+      if (conversation && conversation.length > 0) {
+        // Add only the last few messages to keep context but avoid token limits
+        const recentMessages = conversation.slice(-6); // Take last 6 messages (3 exchanges)
+        messages.push(...recentMessages);
+      }
+
+      // Add the current user message if not already included in conversation
+      if (!conversation || conversation.length === 0 || conversation[conversation.length - 1].role !== 'user' || conversation[conversation.length - 1].content !== message) {
+        messages.push({ role: "user", content: message });
+      }
+
+      // Type assertion to make TypeScript happy with our message format
       const completion = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message }
-        ],
+        messages: messages as any, // Type assertion needed due to OpenAI SDK expecting specific format
       });
 
       res.json({ message: completion.choices[0].message.content });
