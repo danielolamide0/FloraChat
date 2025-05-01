@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Leaf } from "lucide-react";
+import { Send, Leaf, Upload, Camera } from "lucide-react";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -36,7 +36,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
     if (!isWelcomeMessageSent) {
       setMessages([{ 
         role: 'assistant', 
-        content: 'Hello! I\'m your plant assistant. Upload a plant image, and I\'ll help identify it. If you have any questions about plants, feel free to ask!' 
+        content: 'Hello! I\'m your plant assistant. Upload or capture a plant image, and I\'ll help identify it using advanced image recognition. You can now upload larger, high-quality images for better identification results. If you have any questions about plants or gardening, I\'m here to help!' 
       }]);
       setIsWelcomeMessageSent(true);
     }
@@ -155,10 +155,28 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
           <Leaf className="mr-2 h-5 w-5 text-primary" />
           <span>Plant Chat Assistant</span>
         </CardTitle>
+        <CardDescription>
+          {!uploadedImage ? (
+            <div className="flex items-center text-muted-foreground">
+              <Upload className="h-4 w-4 mr-1" /> 
+              <Camera className="h-4 w-4 mx-1" />
+              <span>Upload or capture a plant image for identification</span>
+            </div>
+          ) : identificationResults ? (
+            <div className="text-primary font-medium">
+              Identified: {identificationResults.scientificName} ({identificationResults.commonName})
+            </div>
+          ) : (
+            <div className="text-amber-500 flex items-center">
+              <span className="animate-pulse mr-1">•</span>
+              Processing your plant image...
+            </div>
+          )}
+        </CardDescription>
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-4">
-          <div className="h-[300px] overflow-y-auto space-y-4 mb-4 p-1">
+          <div className="h-[300px] overflow-y-auto space-y-4 mb-4 p-1 rounded-md border">
             {messages.map((message, index) => (
               <div
                 key={index}

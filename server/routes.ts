@@ -360,13 +360,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } 
       };
 
-      let systemPrompt = "You are a helpful plant expert chatbot. ";
+      let systemPrompt = "You are a helpful plant expert chatbot with deep knowledge of gardening, botany, and plant care. ";
       if (!context.hasImage) {
-        systemPrompt += "The user hasn't uploaded any plant image yet. Encourage them to upload one for identification.";
+        systemPrompt += "The user hasn't uploaded any plant image yet. Encourage them to upload one for identification, but also provide helpful gardening tips or plant care advice if they ask.";
       } else if (!context.hasResults) {
-        systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting.";
+        systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting, such as gardening techniques, plant care tips, or seasonal gardening information.";
       } else if (context.plantDetails) {
-        systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). You can provide specific information about this plant.`;
+        systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). Provide specific information about this plant, including care requirements, growing conditions, common issues, propagation methods, and interesting facts. Be conversational and enthusiastic about plants.`;
       }
 
       const completion = await openai.chat.completions.create({
