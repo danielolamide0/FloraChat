@@ -36,7 +36,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
     if (!isWelcomeMessageSent) {
       setMessages([{ 
         role: 'assistant', 
-        content: 'Hello! I\'m your plant assistant. Upload or capture a plant image, and I\'ll help identify it using advanced image recognition. You can now upload larger, high-quality images for better identification results. If you have any questions about plants or gardening, I\'m here to help!' 
+        content: 'Hello! I\'m your plant assistant. Upload or capture a plant image, and I\'ll help identify it using advanced image recognition. If you have any questions about plants or gardening, I\'m here to help!' 
       }]);
       setIsWelcomeMessageSent(true);
     }
@@ -77,7 +77,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: `I just identified a plant as ${identificationResults.scientificName} (${identificationResults.commonName}). Please provide a concise, structured summary of this plant with key identifying features, habitat, and important notes.`,
+          message: `Please provide a structured plant identification summary for ${identificationResults.scientificName} (${identificationResults.commonName}) with identifying features, habitat, and important notes following the exact template format.`,
           context
         }),
       });
