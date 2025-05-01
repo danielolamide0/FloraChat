@@ -4,6 +4,7 @@ import ImageUpload from "@/components/ImageUpload";
 import ResultsSection from "@/components/ResultsSection";
 import HistorySection from "@/components/HistorySection";
 import FeatureSection from "@/components/FeatureSection";
+import ChatBot from "@/components/ChatBot";
 
 export default function Home() {
   const [showResults, setShowResults] = useState(false);
@@ -69,6 +70,10 @@ export default function Home() {
           />
         )}
         
+        <ChatBot 
+          uploadedImage={uploadedImage}
+          identificationResults={identificationResults}
+        />
         <HistorySection />
         <FeatureSection />
       </main>
