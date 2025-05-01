@@ -208,21 +208,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  return httpServer;
-}
-import { OpenAI } from 'openai';
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || '',
+  });
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+  // Validate OpenAI configuration
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('Warning: OPENAI_API_KEY is not set. Chat functionality will be limited.');
+  }
 
-// Validate OpenAI configuration
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('Warning: OPENAI_API_KEY is not set. Chat functionality will be limited.');
-}
-
-// Add this to your existing routes
-app.post('/api/chat', async (req, res) => {
+  app.post('/api/chat', async (req, res) => {
   try {
     const { message, context } = req.body;
 
