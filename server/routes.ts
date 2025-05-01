@@ -208,42 +208,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || '',
-  });
-
-  // Validate OpenAI configuration
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('Warning: OPENAI_API_KEY is not set. Chat functionality will be limited.');
-  }
-
-  app.post('/api/chat', async (req, res) => {
-    try {
-      const { message, context } = req.body;
-
-      let systemPrompt = "You are a helpful plant expert chatbot. ";
-      if (!context.hasImage) {
-        systemPrompt += "The user hasn't uploaded any plant image yet. Encourage them to upload one for identification.";
-      } else if (!context.hasResults) {
-        systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting.";
-      } else {
-        systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). You can provide specific information about this plant.`;
-      }
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message }
-        ],
-      });
-
-      res.json({ message: completion.choices[0].message.content });
-    } catch (error) {
-      console.error('Chat error:', error);
-      res.status(500).json({ error: 'Failed to process chat message' });
-    }
-  });
-
   return httpServer;
 }
+import { OpenAI } from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Add this to your existing routes
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, context } = req.body;
+
+    let systemPrompt = "You are a helpful plant expert chatbot. ";
+    if (!context.hasImage) {
+      systemPrompt += "The user hasn't uploaded any plant image yet. Encourage them to upload one for identification.";
+    } else if (!context.hasResults) {
+      systemPrompt += "The user has uploaded an image and it's being processed. You can discuss general plant topics while waiting.";
+    } else {
+      systemPrompt += `The user has uploaded an image of ${context.plantDetails.name} (${context.plantDetails.commonName}). You can provide specific information about this plant.`;
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ],
+    });
+
+    res.json({ message: completion.choices[0].message.content });
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ error: 'Failed to process chat message' });
+  }
+});
