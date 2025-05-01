@@ -11,6 +11,7 @@ import FormData from 'form-data';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadImageToFirebase, isFirebaseConfigured } from './firebase';
+import { fetchPlantReferenceImage, fetchPlantImageFromCommons } from './utils/wiki-images';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -102,9 +103,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Map PlantNet API response to our schema
         const bestMatch = data.results[0];
         const species = bestMatch.species;
+        const scientificName = species.scientificNameWithoutAuthor;
+        
+        // Fetch a reference image for the plant from Wikimedia
+        console.log(`Fetching reference image for: ${scientificName}`);
+        let referenceImageUrl = null;
+        
+        try {
+          // Try primary method first
+          referenceImageUrl = await fetchPlantReferenceImage(scientificName);
+          
+          // If that fails, try the Commons method
+          if (!referenceImageUrl) {
+            console.log(`No image found via Wikipedia, trying Wikimedia Commons...`);
+            referenceImageUrl = await fetchPlantImageFromCommons(scientificName);
+          }
+          
+          if (referenceImageUrl) {
+            console.log(`Found reference image for ${scientificName}: ${referenceImageUrl}`);
+          } else {
+            console.log(`No reference image found for ${scientificName}`);
+          }
+        } catch (imageError) {
+          console.error(`Error fetching reference image for ${scientificName}:`, imageError);
+        }
+        
         const identificationResult = {
-          scientificName: species.scientificNameWithoutAuthor,
-          commonName: species.commonNames && species.commonNames.length > 0 ? species.commonNames[0] : species.scientificNameWithoutAuthor,
+          scientificName,
+          commonName: species.commonNames && species.commonNames.length > 0 ? species.commonNames[0] : scientificName,
           family: species.family?.scientificNameWithoutAuthor || '',
           genus: species.genus?.scientificNameWithoutAuthor || '',
           confidence: Math.round(bestMatch.score * 100),
@@ -112,6 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           distribution: '',
           habitat: '',
           description: bestMatch.species.gbif?.description || '',
+          referenceImageUrl,
           imageUrl: req.file.buffer.toString('base64'),
           similarPlants: data.results.slice(1, 5).map((result: any) => {
             const similarSpecies = result.species;
@@ -165,6 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             distribution: identificationResult.distribution,
             habitat: identificationResult.habitat,
             description: identificationResult.description,
+            referenceImageUrl: identificationResult.referenceImageUrl,
             imageUrl: imageUrl
           });
           
@@ -249,6 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         distribution: z.string().optional(),
         habitat: z.string().optional(),
         description: z.string().optional(),
+        referenceImageUrl: z.string().optional(),
         imageUrl: z.string(),
         similarPlants: z.array(
           z.object({
@@ -272,6 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         distribution: validatedData.distribution,
         habitat: validatedData.habitat,
         description: validatedData.description,
+        referenceImageUrl: validatedData.referenceImageUrl,
         imageUrl: validatedData.imageUrl,
       });
       

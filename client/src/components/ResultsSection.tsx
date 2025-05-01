@@ -155,6 +155,17 @@ export default function ResultsSection({
                         className="w-full h-auto object-cover" 
                       />
                     )}
+                    
+                    {results.referenceImageUrl && (
+                      <div className="mt-2 p-2 border border-neutral-200 rounded-lg">
+                        <p className="text-xs text-neutral-500 mb-1">Reference Image:</p>
+                        <img 
+                          src={results.referenceImageUrl} 
+                          alt={`Reference image of ${results.scientificName}`}
+                          className="w-full h-auto object-cover rounded" 
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 
