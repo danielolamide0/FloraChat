@@ -52,11 +52,11 @@ export default function ImageUpload({ onImageCapture }: ImageUploadProps) {
       return;
     }
     
-    // Check if the file size is under 10MB
-    if (file.size > 10 * 1024 * 1024) {
+    // Check if the file size is under 25MB
+    if (file.size > 25 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please upload an image smaller than 10MB.",
+        description: "Please upload an image smaller than 25MB.",
         variant: "destructive",
       });
       return;
@@ -115,7 +115,7 @@ export default function ImageUpload({ onImageCapture }: ImageUploadProps) {
                   accept="image/*"
                   onChange={handleFileInputChange}
                 />
-                <p className="mt-4 text-sm text-neutral-dark">Supported formats: JPG, PNG, WEBP</p>
+                <p className="mt-4 text-sm text-neutral-dark">Supported formats: JPG, PNG, WEBP (up to 25MB)</p>
               </div>
             </TabsContent>
             

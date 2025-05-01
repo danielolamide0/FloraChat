@@ -16,7 +16,7 @@ import { uploadImageToFirebase, isFirebaseConfigured } from './firebase';
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 25 * 1024 * 1024, // 25MB limit (increased from 10MB)
   },
   fileFilter: (_req: any, file: any, cb: any) => {
     // Accept only image files
