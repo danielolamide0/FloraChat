@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
@@ -7,6 +7,9 @@ import fs from "fs";
 import { plantIdentificationResultSchema } from "@shared/schema";
 import { z } from "zod";
 import { OpenAI } from 'openai';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -31,60 +34,145 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Identify plant from image
+  // PlantNet API integration for plant identification
   app.post("/api/identify", upload.single("image"), async (req: any, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
       }
       
-      // TODO: This is a placeholder for the actual plant identification logic
-      // In a real implementation, this would call the existing plant identification code
+      // Check if PlantNet API key exists
+      if (!process.env.PLANTNET_API_KEY) {
+        return res.status(503).json({ 
+          message: "Plant identification is currently unavailable. Please provide a PlantNet API key.",
+          error: "PlantNet API key not configured" 
+        });
+      }
+
+      console.log("Processing plant identification request...");
       
-      // Mock response for demonstration purposes
-      // This would be replaced with actual plant identification logic
-      const mockIdentificationResult = {
-        scientificName: "Monstera deliciosa",
-        commonName: "Swiss Cheese Plant",
-        family: "Araceae",
-        genus: "Monstera",
-        confidence: 96,
-        category: "Household",
-        distribution: "Central America, Mexico",
-        habitat: "Tropical forests",
-        description: "A species of flowering plant native to tropical forests of southern Mexico, south to Panama. It has been introduced to many tropical areas, and has become a mildly invasive species in Hawaii, Seychelles, Ascension Island and the Society Islands.",
-        similarPlants: [
-          {
-            scientificName: "Monstera adansonii",
-            commonName: "Monkey Mask",
-            similarity: 85,
-            imageUrl: "https://images.unsplash.com/photo-1682685795463-0674c065f315"
-          },
-          {
-            scientificName: "Philodendron bipinnatifidum",
-            commonName: "Split-leaf Philodendron",
-            similarity: 72,
-            imageUrl: "https://images.unsplash.com/photo-1637967886160-fd0748e0ac1f"
-          },
-          {
-            scientificName: "Rhaphidophora tetrasperma",
-            commonName: "Mini Monstera",
-            similarity: 68,
-            imageUrl: "https://images.unsplash.com/photo-1656513285042-385fbe3b2105"
-          },
-          {
-            scientificName: "Epipremnum aureum",
-            commonName: "Golden Pothos",
-            similarity: 61,
-            imageUrl: "https://images.unsplash.com/photo-1622554129902-aa7d3cafe862"
+      // Save the uploaded image to a temporary file
+      const tempFileName = `${uuidv4()}.${req.file.originalname.split('.').pop()}`;
+      const tempFilePath = path.join(__dirname, '..', 'temp', tempFileName);
+      
+      // Ensure the temp directory exists
+      const tempDir = path.join(__dirname, '..', 'temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // Write the file to disk
+      fs.writeFileSync(tempFilePath, req.file.buffer);
+      
+      try {
+        // Call PlantNet API for identification
+        const plantNetUrl = "https://my-api.plantnet.org/v2/identify/all";
+        const formData = new FormData();
+        
+        // Add the image file to form data
+        formData.append('images', fs.createReadStream(tempFilePath));
+        
+        // Add other required parameters
+        formData.append('organs', 'auto'); // Let PlantNet detect the organ automatically
+        
+        // Make the API request
+        const response = await fetch(`${plantNetUrl}?api-key=${process.env.PLANTNET_API_KEY}`, {
+          method: 'POST',
+          body: formData as any,
+        });
+        
+        // Clean up temporary file
+        fs.unlinkSync(tempFilePath);
+        
+        if (!response.ok) {
+          console.error(`PlantNet API responded with status ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          return res.status(500).json({ message: "Plant identification service failed" });
+        }
+        
+        const data = await response.json();
+        
+        // Check if results exist
+        if (!data.results || data.results.length === 0) {
+          return res.status(404).json({ message: "No plants identified in the image" });
+        }
+        
+        // Map PlantNet API response to our schema
+        const bestMatch = data.results[0];
+        const species = bestMatch.species;
+        const identificationResult = {
+          scientificName: species.scientificNameWithoutAuthor,
+          commonName: species.commonNames && species.commonNames.length > 0 ? species.commonNames[0] : species.scientificNameWithoutAuthor,
+          family: species.family?.scientificNameWithoutAuthor || '',
+          genus: species.genus?.scientificNameWithoutAuthor || '',
+          confidence: Math.round(bestMatch.score * 100),
+          category: data.queryMetadata?.classification || 'Unknown',
+          distribution: '',
+          habitat: '',
+          description: bestMatch.species.gbif?.description || 'No description available',
+          imageUrl: req.file.buffer.toString('base64'),
+          similarPlants: data.results.slice(1, 5).map((result: any) => {
+            const similarSpecies = result.species;
+            return {
+              scientificName: similarSpecies.scientificNameWithoutAuthor,
+              commonName: similarSpecies.commonNames && similarSpecies.commonNames.length > 0 
+                ? similarSpecies.commonNames[0] 
+                : similarSpecies.scientificNameWithoutAuthor,
+              similarity: Math.round(result.score * 100),
+              imageUrl: result.images && result.images.length > 0 
+                ? result.images[0].url.o 
+                : undefined
+            };
+          })
+        };
+        
+        // Save the identification to storage
+        try {
+          const createdId = await storage.createPlantIdentification({
+            scientificName: identificationResult.scientificName,
+            commonName: identificationResult.commonName,
+            family: identificationResult.family,
+            genus: identificationResult.genus,
+            confidence: identificationResult.confidence,
+            category: identificationResult.category,
+            distribution: identificationResult.distribution,
+            habitat: identificationResult.habitat,
+            description: identificationResult.description,
+            imageUrl: `data:image/${req.file.mimetype.split('/')[1]};base64,${req.file.buffer.toString('base64')}`
+          });
+          
+          // Add similar plants
+          if (identificationResult.similarPlants && identificationResult.similarPlants.length > 0) {
+            for (const similarPlant of identificationResult.similarPlants) {
+              await storage.createSimilarPlant({
+                identificationId: createdId.id,
+                scientificName: similarPlant.scientificName,
+                commonName: similarPlant.commonName,
+                similarity: similarPlant.similarity,
+                imageUrl: similarPlant.imageUrl
+              });
+            }
           }
-        ]
-      };
-      
-      // Validate the result against the schema
-      const parsedResult = plantIdentificationResultSchema.parse(mockIdentificationResult);
-      
-      res.status(200).json(parsedResult);
+          
+          console.log(`Plant identification saved with ID: ${createdId.id}`);
+        } catch (storageError) {
+          console.error("Failed to save identification to storage:", storageError);
+        }
+        
+        // Validate the result against our schema
+        const parsedResult = plantIdentificationResultSchema.parse(identificationResult);
+        
+        res.status(200).json(parsedResult);
+      } catch (apiError) {
+        // Clean up temporary file if it exists
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+        
+        console.error("Error calling PlantNet API:", apiError);
+        res.status(500).json({ message: "Failed to identify plant" });
+      }
     } catch (error) {
       console.error("Error processing plant identification:", error);
       res.status(500).json({ message: "Failed to process plant identification" });
