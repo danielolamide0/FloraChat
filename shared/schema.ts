@@ -31,6 +31,7 @@ export const plantIdentifications = pgTable("plant_identifications", {
   distribution: text("distribution"),
   habitat: text("habitat"),
   description: text("description"),
+  referenceImageUrl: text("reference_image_url"),
   identifiedAt: timestamp("identified_at").defaultNow(),
 });
 
@@ -68,6 +69,7 @@ export const plantIdentificationResultSchema = z.object({
   distribution: z.string().optional(),
   habitat: z.string().optional(),
   description: z.string().optional(),
+  referenceImageUrl: z.string().optional(),
   similarPlants: z.array(
     z.object({
       scientificName: z.string(),
