@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: data.queryMetadata?.classification || 'Unknown',
           distribution: '',
           habitat: '',
-          description: bestMatch.species.gbif?.description || 'No description available',
+          description: bestMatch.species.gbif?.description || '',
           imageUrl: req.file.buffer.toString('base64'),
           similarPlants: data.results.slice(1, 5).map((result: any) => {
             const similarSpecies = result.species;

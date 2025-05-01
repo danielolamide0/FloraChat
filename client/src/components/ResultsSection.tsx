@@ -202,15 +202,6 @@ export default function ResultsSection({
                     )}
                   </div>
 
-                  {results.description && (
-                    <div className="mb-6">
-                      <h5 className="font-heading font-medium text-lg mb-2">Plant Description</h5>
-                      <p className="text-neutral-dark">
-                        {results.description}
-                      </p>
-                    </div>
-                  )}
-
                   <div className="flex justify-end">
                     <Button
                       variant="outline"
