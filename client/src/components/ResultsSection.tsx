@@ -78,9 +78,10 @@ export default function ResultsSection({
       const savedData = await response.json();
       setSavedIdentificationId(savedData.id);
       
+      // Show favorites button right after saving
       toast({
         title: "Saved to history",
-        description: "This identification has been added to your history.",
+        description: "This identification has been added to your history. You can now add it to favorites.",
       });
     } catch (error) {
       console.error('Save error:', error);
@@ -268,9 +269,22 @@ export default function ResultsSection({
                 {/* Results Info */}
                 <div className="md:w-2/3">
                   <div className="mb-4">
-                    <h4 className="text-xl md:text-2xl font-heading font-semibold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent mb-1 break-words">
-                      {results.scientificName}
-                    </h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xl md:text-2xl font-heading font-semibold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent mb-1 break-words">
+                        {results.scientificName}
+                      </h4>
+                      
+                      {savedIdentificationId && (
+                        <button 
+                          onClick={handleToggleFavorite} 
+                          className="ml-3 p-2 rounded-full hover:bg-yellow-50 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                        >
+                          <Star className={`h-6 w-6 ${isFavorite ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`} />
+                        </button>
+                      )}
+                    </div>
                     <p className="text-base md:text-lg italic mb-2 text-slate-700">
                       {results.commonName}
                     </p>
