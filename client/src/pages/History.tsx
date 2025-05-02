@@ -90,10 +90,10 @@ export default function History() {
                         <p className="text-sm text-neutral-dark">{item.commonName}</p>
                       </td>
                       <td className="py-2 px-4 text-sm">
-                        {new Date(item.identifiedAt).toLocaleDateString()}
+                        {item.identifiedAt ? new Date(item.identifiedAt).toLocaleDateString() : 'Unknown'}
                       </td>
                       <td className="py-2 px-4">
-                        <div className="bg-primary-light text-white text-xs px-3 py-1 rounded-full inline-block">
+                        <div className="bg-gradient-to-r from-green-600 to-green-500 text-white text-xs px-3 py-1 rounded-full inline-block shadow-sm">
                           {item.confidence}%
                         </div>
                       </td>

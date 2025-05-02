@@ -157,7 +157,9 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
     <Card className="mt-6">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center">
-          <Leaf className="mr-2 h-5 w-5 text-primary" />
+          <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-full mr-3">
+            <Leaf className="h-5 w-5 text-green-600" />
+          </div>
           <div className="flex flex-col">
             <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat Assistant</span>
             <span className="text-xs text-gray-500 -mt-1">for plant lovers & gardeners</span>
@@ -184,7 +186,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-4">
-          <div className="h-[300px] overflow-y-auto space-y-4 mb-4 p-1 rounded-md border">
+          <div className="h-[300px] overflow-y-auto space-y-4 mb-4 p-3 rounded-md border border-green-100 bg-white/50 backdrop-blur-sm shadow-inner">
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -193,8 +195,8 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
                 <div
                   className={`max-w-[80%] rounded-lg px-4 py-2 ${
                     message.role === 'user'
-                      ? 'bg-primary text-white'
-                      : 'bg-neutral-100 dark:bg-gray-800'
+                      ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-sm'
+                      : 'bg-gradient-to-r from-green-50 to-green-100 border border-green-100 shadow-sm'
                   }`}
                 >
                   {message.role === 'assistant' 
@@ -213,12 +215,12 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
                         return (
                           <div key={i} className={`
                             ${i > 0 ? 'mt-2' : ''} 
-                            ${isHeader ? 'font-bold text-lg mt-4 mb-2' : ''}
-                            ${isIntro ? 'font-medium mb-3' : ''}
+                            ${isHeader ? 'font-bold text-lg mt-4 mb-2 text-green-700 bg-green-50 py-1 px-2 rounded-md inline-block' : ''}
+                            ${isIntro ? 'font-medium mb-3 text-green-800' : ''}
                           `}>
                             {line.trim() === '' ? <br /> : (
                               isBulletPoint ? 
-                                <span className="block pl-3 border-l-2 border-primary ml-2 py-1">{line}</span> : 
+                                <span className="block pl-3 border-l-2 border-green-400 ml-2 py-1 bg-green-50/50 rounded-r-md">{line}</span> : 
                                 line
                             )}
                           </div>
@@ -230,8 +232,11 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg px-4 py-2 bg-neutral-100 dark:bg-gray-800">
-                  <span className="animate-pulse">Thinking...</span>
+                <div className="max-w-[80%] rounded-lg px-4 py-2 bg-gradient-to-r from-green-50 to-green-100 border border-green-100 shadow-sm">
+                  <div className="flex items-center">
+                    <div className="animate-pulse mr-2 h-4 w-4 rounded-full bg-green-400"></div>
+                    <span>Thinking about plants...</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -243,7 +248,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me about plants..."
-              className="resize-none"
+              className="resize-none bg-white/70 backdrop-blur-sm border-green-100 focus-visible:ring-green-400 focus-visible:border-green-300"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
