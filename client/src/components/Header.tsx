@@ -8,7 +8,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="py-6 bg-white/70 backdrop-blur-md shadow-lg border-b border-green-100">
+    <header className="py-4 md:py-6 bg-white/70 backdrop-blur-md shadow-lg border-b border-green-100 sticky top-0 z-50">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
@@ -61,37 +61,39 @@ export default function Header() {
         
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden mt-4 py-2 bg-white/90 backdrop-blur-sm rounded-lg">
-            <ul className="space-y-3">
-              <li>
-                <Link 
-                  href="/"
-                  className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/history"
-                  className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/history" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  History
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/about"
-                  className={`block py-2 px-4 font-heading font-medium rounded-md ${location === "/about" ? "bg-primary-light text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About
-                </Link>
-              </li>
-            </ul>
-          </nav>
+          <div className="absolute top-full left-0 right-0 mt-1 px-4 md:hidden">
+            <nav className="py-3 bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-green-100 animate-in slide-in">
+              <ul className="space-y-1">
+                <li>
+                  <Link 
+                    href="/"
+                    className={`block py-2.5 px-4 font-heading font-medium rounded-md ${location === "/" ? "bg-primary text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/history"
+                    className={`block py-2.5 px-4 font-heading font-medium rounded-md ${location === "/history" ? "bg-primary text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    History
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/about"
+                    className={`block py-2.5 px-4 font-heading font-medium rounded-md ${location === "/about" ? "bg-primary text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    About
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+          </div>
         )}
       </div>
     </header>

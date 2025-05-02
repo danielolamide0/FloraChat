@@ -5,8 +5,8 @@ export default function Footer() {
   return (
     <footer className="py-8 border-t border-green-100 bg-white/70 backdrop-blur-md shadow-inner">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-8">
+          <div className="col-span-2 md:col-span-1">
             <h5 className="font-heading font-semibold mb-4 flex items-center">
               <Leaf className="h-5 w-5 text-primary mr-2" />
               <div className="flex flex-col">
@@ -15,7 +15,7 @@ export default function Footer() {
               </div>
             </h5>
             <p className="text-sm text-neutral-dark">
-              The ultimate plant identification companion for garden enthusiasts and plant lovers, powered by advanced image recognition technology.
+              The ultimate plant identification companion for garden enthusiasts and plant lovers.
             </p>
           </div>
           
