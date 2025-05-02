@@ -11,7 +11,7 @@ function Router() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <div className="flex-grow">
+      <div className="flex-grow container mx-auto px-4 py-6">
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/history" component={History} />
