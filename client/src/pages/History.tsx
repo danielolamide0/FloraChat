@@ -39,7 +39,9 @@ export default function History() {
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl md:text-4xl font-heading font-bold text-primary-dark mb-8">Identification History</h1>
+      <h1 className="text-3xl md:text-4xl font-heading font-bold mb-8">
+        <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat</span> Identification History
+      </h1>
       
       <Card className="mb-8">
         <CardContent className="p-6">

@@ -9,10 +9,13 @@ export default function Footer() {
           <div>
             <h5 className="font-heading font-semibold mb-4 flex items-center">
               <Leaf className="h-5 w-5 text-primary mr-2" />
-              PlantID
+              <div className="flex flex-col">
+                <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat</span>
+                <span className="text-xs text-gray-500 -mt-1">by Synaptide AI</span>
+              </div>
             </h5>
             <p className="text-sm text-neutral-dark">
-              A powerful tool for identifying plant species for plant enthusiasts, gardeners, and botanical research.
+              The ultimate plant identification companion for garden enthusiasts and plant lovers, powered by advanced image recognition technology.
             </p>
           </div>
           
@@ -72,13 +75,13 @@ export default function Footer() {
               </a>
             </div>
             <p className="text-sm text-neutral-dark">
-              Contact us: <a href="mailto:info@plantid.app" className="text-primary">info@plantid.app</a>
+              Contact us: <a href="mailto:info@florachat.synaptideai.com" className="text-primary">info@florachat.synaptideai.com</a>
             </p>
           </div>
         </div>
         
         <div className="text-center text-sm text-neutral-dark pt-4 border-t border-neutral">
-          <p>&copy; {new Date().getFullYear()} PlantID. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} FloraChat by Synaptide AI. All rights reserved.</p>
         </div>
       </div>
     </footer>
