@@ -96,7 +96,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
     <div className="text-center">
       {isCameraAvailable ? (
         <>
-          <div className="relative max-w-md mx-auto mb-4 bg-neutral rounded-lg overflow-hidden" style={{ aspectRatio: "4/3" }}>
+          <div className="relative max-w-md mx-auto mb-4 bg-neutral rounded-lg overflow-hidden border-2 border-green-100 shadow-sm" style={{ aspectRatio: "4/3" }}>
             <video 
               ref={videoRef}
               autoPlay
@@ -109,14 +109,14 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
           <div className="flex justify-center space-x-4">
             <Button 
               onClick={captureImage} 
-              className="bg-primary hover:bg-primary-dark text-white font-heading font-medium"
+              className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm"
             >
               <Camera className="mr-2 h-4 w-4" /> Capture
             </Button>
             <Button 
               onClick={switchCamera} 
               variant="outline"
-              className="bg-neutral hover:bg-neutral-dark text-neutral-dark font-heading font-medium"
+              className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-heading font-medium"
             >
               <RefreshCw className="mr-2 h-4 w-4" /> Switch Camera
             </Button>
@@ -127,7 +127,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
           <p className="text-red-500 mb-4">Camera access is required for this feature.</p>
           <Button 
             onClick={startCamera} 
-            className="bg-primary hover:bg-primary-dark text-white font-heading font-medium"
+            className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm"
           >
             Try Again
           </Button>
