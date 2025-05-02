@@ -248,7 +248,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me about plants..."
-              className="resize-none bg-white/80 backdrop-blur-md border-green-100 focus-visible:ring-green-400 focus-visible:border-green-300 placeholder:text-green-700/60"
+              className="resize-none min-h-[40px] md:min-h-[60px] text-sm md:text-base bg-white/80 backdrop-blur-md border-green-100 focus-visible:ring-green-400 focus-visible:border-green-300 placeholder:text-green-700/60"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -257,12 +257,13 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
               }}
             />
             <Button
+              size="sm"
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className="shrink-0 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400"
+              className="shrink-0 w-8 h-8 md:w-10 md:h-10 p-0 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400"
               variant="default"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </Button>
           </div>
         </div>

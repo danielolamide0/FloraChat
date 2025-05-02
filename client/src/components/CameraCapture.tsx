@@ -96,7 +96,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
     <div className="text-center">
       {isCameraAvailable ? (
         <>
-          <div className="relative max-w-md mx-auto mb-4 bg-neutral rounded-lg overflow-hidden border-2 border-green-300 shadow-md backdrop-blur-md" style={{ aspectRatio: "4/3" }}>
+          <div className="relative max-w-md mx-auto mb-3 md:mb-4 bg-neutral rounded-lg overflow-hidden border-2 border-green-300 shadow-md backdrop-blur-md" style={{ aspectRatio: "4/3" }}>
             <video 
               ref={videoRef}
               autoPlay
@@ -106,28 +106,31 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
             />
           </div>
           <canvas ref={canvasRef} className="hidden" />
-          <div className="flex justify-center space-x-4">
+          <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
             <Button 
-              onClick={captureImage} 
-              className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm"
+              onClick={captureImage}
+              size="sm"
+              className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm text-xs md:text-sm"
             >
-              <Camera className="mr-2 h-4 w-4" /> Capture
+              <Camera className="mr-1.5 md:mr-2 h-3.5 w-3.5 md:h-4 md:w-4" /> Capture
             </Button>
             <Button 
-              onClick={switchCamera} 
+              onClick={switchCamera}
+              size="sm"
               variant="outline"
-              className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-heading font-medium"
+              className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-heading font-medium text-xs md:text-sm"
             >
-              <RefreshCw className="mr-2 h-4 w-4" /> Switch Camera
+              <RefreshCw className="mr-1.5 md:mr-2 h-3.5 w-3.5 md:h-4 md:w-4" /> Switch Camera
             </Button>
           </div>
         </>
       ) : (
-        <div className="py-8">
-          <p className="text-red-500 mb-4">Camera access is required for this feature.</p>
+        <div className="py-4 md:py-8">
+          <p className="text-red-500 mb-3 md:mb-4 text-sm md:text-base">Camera access is required for this feature.</p>
           <Button 
-            onClick={startCamera} 
-            className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm"
+            onClick={startCamera}
+            size="sm"
+            className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm text-xs md:text-sm"
           >
             Try Again
           </Button>
