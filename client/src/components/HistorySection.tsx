@@ -46,7 +46,7 @@ export default function HistorySection() {
       <Card>
         <CardContent className="p-6 md:p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-heading font-semibold">Recent Identifications</h3>
+            <h3 className="text-xl font-heading font-semibold text-green-700 pb-1 border-b border-green-100">Recent Identifications</h3>
             <Link href="/history" className="text-primary hover:text-primary-dark font-medium transition-colors">
               View All History
             </Link>
@@ -72,7 +72,7 @@ export default function HistorySection() {
           ) : identifications && identifications.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-neutral-light border-b">
+                <thead className="bg-gradient-to-r from-green-50 to-white border-b border-green-100">
                   <tr>
                     <th className="text-left py-3 px-4 font-heading font-medium text-sm text-neutral-dark">Image</th>
                     <th className="text-left py-3 px-4 font-heading font-medium text-sm text-neutral-dark">Species</th>
@@ -83,7 +83,7 @@ export default function HistorySection() {
                 </thead>
                 <tbody>
                   {identifications.slice(0, 3).map((item) => (
-                    <tr key={item.id} className="border-b hover:bg-neutral-light">
+                    <tr key={item.id} className="border-b border-green-50 hover:bg-green-50/30 transition-colors">
                       <td className="py-2 px-4">
                         <div className="w-16 h-16 rounded overflow-hidden">
                           <img src={item.imageUrl} alt={item.scientificName} className="w-full h-full object-cover" />
@@ -99,7 +99,7 @@ export default function HistorySection() {
                           : 'N/A'}
                       </td>
                       <td className="py-2 px-4">
-                        <div className="bg-primary-light text-white text-xs px-3 py-1 rounded-full inline-block">
+                        <div className="bg-gradient-to-r from-green-600 to-green-500 text-white text-xs px-3 py-1 rounded-full inline-block shadow-sm">
                           {item.confidence}%
                         </div>
                       </td>
@@ -108,7 +108,7 @@ export default function HistorySection() {
                           variant="ghost"
                           size="icon"
                           onClick={() => setLocation(`/identification/${item.id}`)}
-                          className="text-primary hover:text-primary-dark mr-2"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 mr-2 transition-colors"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -116,7 +116,7 @@ export default function HistorySection() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(item.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
