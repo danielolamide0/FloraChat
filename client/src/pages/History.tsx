@@ -173,9 +173,18 @@ export default function History() {
     ? identifications.filter(item => item.isFavorite)
     : identifications;
   
-  const formatDate = (timestamp: { seconds: number, nanoseconds: number }) => {
+  const formatDate = (timestamp: { seconds: number, nanoseconds: number } | string) => {
     if (!timestamp) return 'Unknown date';
-    const date = new Date(timestamp.seconds * 1000);
+    
+    let date;
+    if (typeof timestamp === 'string') {
+      // Handle ISO string format from localStorage
+      date = new Date(timestamp);
+    } else {
+      // Handle Firebase timestamp format
+      date = new Date(timestamp.seconds * 1000);
+    }
+    
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 

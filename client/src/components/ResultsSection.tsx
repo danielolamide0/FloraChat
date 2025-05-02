@@ -91,8 +91,14 @@ export default function ResultsSection({
         
         // Fallback to localStorage
         try {
+          // First, clear any old guest storage if a user is logged in
+          if (user?.username) {
+            localStorage.removeItem('plantHistory_guest');
+          }
+          
           // Get existing history or initialize empty array
           const historyKey = `plantHistory_${user?.username || 'guest'}`;
+          console.log('Using history key:', historyKey);
           const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
           
           // Add the new identification to history

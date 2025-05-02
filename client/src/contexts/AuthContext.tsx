@@ -99,15 +99,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Username is required');
       }
       
-      // Check if the user exists in Firebase
-      const existingUser = await getUser(username.trim());
+      // Clear guest storage when a user logs in
+      localStorage.removeItem('plantHistory_guest');
       
-      if (!existingUser) {
-        // Create a new user if they don't exist
-        await createUser(username.trim());
-      } else {
-        // Update last login time for existing user
-        await updateUserLastLogin(username.trim());
+      // Check if the user exists in Firebase
+      try {
+        const existingUser = await getUser(username.trim());
+        
+        if (!existingUser) {
+          // Create a new user if they don't exist
+          await createUser(username.trim());
+        } else {
+          // Update last login time for existing user
+          await updateUserLastLogin(username.trim());
+        }
+      } catch (firebaseError) {
+        console.error('Firebase error during login, continuing with local storage only:', firebaseError);
       }
       
       // Store user in state and localStorage
@@ -125,8 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    const username = user?.username;
+    
+    // Clear user data
     setUser(null);
     localStorage.removeItem('floraChat_user');
+    
+    // Clear user-specific data
+    if (username) {
+      localStorage.removeItem(`plantHistory_${username}`);
+    }
   };
 
   return (
