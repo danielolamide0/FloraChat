@@ -100,22 +100,22 @@ export default function ResultsSection({
 
           {isLoading && (
             <div id="loading-state" className="py-8 text-center">
-              <div className="loading-spinner w-12 h-12 border-4 border-neutral rounded-full mx-auto mb-4"></div>
-              <p className="text-lg font-medium">Analyzing your plant image...</p>
+              <div className="loading-spinner w-12 h-12 border-4 border-t-green-500 border-neutral-200 rounded-full mx-auto mb-4 animate-spin"></div>
+              <p className="text-lg font-medium text-green-700">Analyzing your plant image...</p>
               <p className="text-sm text-neutral-dark mt-2">This may take a few moments</p>
             </div>
           )}
 
           {!isLoading && hasError && (
             <div id="error-state" className="py-8 text-center">
-              <div className="text-red-500 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto">
+              <div className="bg-red-50 p-4 rounded-full inline-block mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-red-500">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               </div>
-              <h4 className="text-xl font-heading font-medium mb-2">Identification Failed</h4>
+              <h4 className="text-xl font-heading font-medium mb-2 text-red-600">Identification Failed</h4>
               <p className="text-neutral-dark mb-4">We couldn't identify the plant in your image. Please ensure your image:</p>
               <ul className="text-left max-w-md mx-auto mb-6">
                 <li className="flex items-start mb-2">
@@ -142,7 +142,7 @@ export default function ResultsSection({
               </ul>
               <Button 
                 onClick={onNewIdentification}
-                className="bg-primary hover:bg-primary-dark text-white font-heading font-medium"
+                className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-md"
               >
                 Try Again
               </Button>
@@ -184,10 +184,10 @@ export default function ResultsSection({
                 {/* Results Info */}
                 <div className="md:w-2/3">
                   <div className="mb-4">
-                    <h4 className="text-2xl font-heading font-semibold text-primary mb-1">
+                    <h4 className="text-2xl font-heading font-semibold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent mb-1">
                       {results.scientificName}
                     </h4>
-                    <p className="text-lg italic mb-2">
+                    <p className="text-lg italic mb-2 text-slate-700">
                       {results.commonName}
                     </p>
                     <div className="flex items-center mb-4">
