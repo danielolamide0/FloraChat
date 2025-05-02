@@ -40,7 +40,7 @@ export default function ResultsSection({
         description: "Please login to save identifications to your history.",
         variant: "destructive",
       });
-      navigate('/login');
+      navigate('/auth');
       return;
     }
     
@@ -101,7 +101,7 @@ export default function ResultsSection({
         description: "Please login to save identifications to your favorites.",
         variant: "destructive",
       });
-      navigate('/login');
+      navigate('/auth');
       return;
     }
     
@@ -356,7 +356,7 @@ export default function ResultsSection({
                         variant="link"
                         size="sm"
                         className="text-green-700 hover:text-green-800 font-heading font-medium text-xs sm:text-sm"
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/auth')}
                       >
                         <LogIn className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Login to save plants
                       </Button>
