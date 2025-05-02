@@ -36,7 +36,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
     if (!isWelcomeMessageSent) {
       setMessages([{ 
         role: 'assistant', 
-        content: 'Hello! I\'m your plant assistant. Upload or capture a plant image, and I\'ll help identify it using advanced image recognition. If you have any questions about plants or gardening, I\'m here to help!' 
+        content: 'Hello! I\'m FloraChat, your plant assistant from Synaptide AI. I\'m specially designed for plant lovers and gardening enthusiasts! Upload or capture a plant image, and I\'ll help identify it using advanced image recognition. Ask me anything about plants, gardening tips, or plant care advice!' 
       }]);
       setIsWelcomeMessageSent(true);
     }
@@ -158,7 +158,10 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center">
           <Leaf className="mr-2 h-5 w-5 text-primary" />
-          <span>Plant Chat Assistant</span>
+          <div className="flex flex-col">
+            <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat Assistant</span>
+            <span className="text-xs text-gray-500 -mt-1">for plant lovers & gardeners</span>
+          </div>
         </CardTitle>
         <CardDescription>
           {!uploadedImage ? (

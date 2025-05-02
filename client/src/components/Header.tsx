@@ -15,9 +15,12 @@ export default function Header() {
             <div className="text-primary mr-2">
               <Leaf className="h-8 w-8" />
             </div>
-            <Link href="/" className="text-2xl md:text-3xl font-heading font-bold text-primary">
-              PlantID
-            </Link>
+            <div className="flex flex-col">
+              <Link href="/" className="text-2xl md:text-3xl font-heading font-bold text-primary bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
+                FloraChat
+              </Link>
+              <span className="text-xs md:text-sm text-gray-500 -mt-1">by Synaptide AI</span>
+            </div>
           </div>
           
           {/* Desktop Navigation */}
