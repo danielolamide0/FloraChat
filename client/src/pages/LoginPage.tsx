@@ -19,7 +19,10 @@ export default function LoginPage() {
   // If already logged in, redirect to home
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      // Use setTimeout to ensure the navigation happens after auth state is fully processed
+      setTimeout(() => {
+        navigate('/');
+      }, 100);
     }
   }, [isAuthenticated, navigate]);
 

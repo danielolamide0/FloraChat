@@ -1,5 +1,6 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import History from "@/pages/History";
@@ -9,10 +10,21 @@ import ProfilePage from "@/pages/ProfilePage";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import bgImage from "./assets/relaxing-in-nature.webp";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [location, setLocation] = useLocation();
+  
+  // Redirect to login if not authenticated (except for public routes)
+  useEffect(() => {
+    const publicRoutes = ['/login', '/about'];
+    if (!isLoading && !isAuthenticated && !publicRoutes.includes(location)) {
+      setLocation('/login');
+    }
+  }, [isAuthenticated, isLoading, location]);
+
   return (
     <div className="flex flex-col min-h-screen relative">
       {/* Mobile background with custom positioning */}
@@ -39,15 +51,27 @@ function Router() {
           <Header />
           <div className="flex-grow container mx-auto px-4 pt-6 pb-12">
             <Switch>
-              <Route path="/" component={Home} />
+              <Route path="/">
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              </Route>
               <Route path="/history">
                 <ProtectedRoute>
                   <History />
                 </ProtectedRoute>
               </Route>
               <Route path="/about" component={About} />
-              <Route path="/profile" component={ProfilePage} />
-              <Route path="/identification/:id" component={History} />
+              <Route path="/profile">
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/identification/:id">
+                <ProtectedRoute>
+                  <History />
+                </ProtectedRoute>
+              </Route>
               <Route component={NotFound} />
             </Switch>
           </div>
