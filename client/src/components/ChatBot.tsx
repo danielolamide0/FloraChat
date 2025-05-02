@@ -186,7 +186,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-4">
-          <div className="h-[250px] md:h-[300px] overflow-y-auto space-y-3 md:space-y-4 mb-3 md:mb-4 p-2 md:p-3 rounded-md border border-green-100 bg-white/70 backdrop-blur-md shadow-inner">
+          <div className="h-[250px] md:h-[300px] overflow-y-auto space-y-3 md:space-y-4 mb-3 md:mb-4 p-2 md:p-3 rounded-md border border-green-100 bg-white/60 backdrop-blur-sm shadow-inner">
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -248,7 +248,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me about plants..."
-              className="resize-none min-h-[40px] md:min-h-[60px] text-sm md:text-base bg-white/80 backdrop-blur-md border-green-100 focus-visible:ring-green-400 focus-visible:border-green-300 placeholder:text-green-700/60"
+              className="resize-none min-h-[40px] md:min-h-[60px] text-sm md:text-base bg-white/60 backdrop-blur-sm border-green-100 focus-visible:ring-green-400 focus-visible:border-green-300 placeholder:text-green-700/70"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
