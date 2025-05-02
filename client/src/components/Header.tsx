@@ -62,7 +62,7 @@ export default function Header() {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 mt-1 px-4 md:hidden">
-            <nav className="py-3 bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-green-100 animate-in slide-in">
+            <nav className="py-3 bg-white/95 rounded-lg shadow-lg border border-green-100 animate-in slide-in">
               <ul className="space-y-1">
                 <li>
                   <Link 
