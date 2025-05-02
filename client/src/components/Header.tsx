@@ -8,7 +8,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="py-6 bg-white shadow-sm">
+    <header className="py-6 bg-white/80 backdrop-blur-sm shadow-md">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
@@ -61,7 +61,7 @@ export default function Header() {
         
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden mt-4 py-2 bg-white">
+          <nav className="md:hidden mt-4 py-2 bg-white/90 backdrop-blur-sm rounded-lg">
             <ul className="space-y-3">
               <li>
                 <Link 

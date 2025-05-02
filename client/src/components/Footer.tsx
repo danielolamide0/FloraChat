@@ -3,7 +3,7 @@ import { Leaf, Twitter, Github, Linkedin } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="py-8 border-t border-neutral bg-white">
+    <footer className="py-8 border-t border-green-100 bg-white/80 backdrop-blur-sm">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
@@ -80,7 +80,7 @@ export default function Footer() {
           </div>
         </div>
         
-        <div className="text-center text-sm text-neutral-dark pt-4 border-t border-neutral">
+        <div className="text-center text-sm text-neutral-dark pt-4 border-t border-green-100">
           <p>&copy; {new Date().getFullYear()} FloraChat by Synaptide AI. All rights reserved.</p>
         </div>
       </div>
