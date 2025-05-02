@@ -3,7 +3,7 @@ import { Leaf, Twitter, Github, Linkedin } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="py-8 border-t border-green-100 bg-white/80 backdrop-blur-sm">
+    <footer className="py-8 border-t border-green-100 bg-white/70 backdrop-blur-md shadow-inner">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
@@ -20,7 +20,7 @@ export default function Footer() {
           </div>
           
           <div>
-            <h5 className="font-heading font-semibold mb-4">Quick Links</h5>
+            <h5 className="font-heading font-semibold mb-4 text-green-700 pb-1 border-b border-green-100">Quick Links</h5>
             <ul className="text-sm space-y-2">
               <li>
                 <Link href="/" className="text-neutral-dark hover:text-primary transition-colors">
@@ -44,7 +44,7 @@ export default function Footer() {
           </div>
           
           <div>
-            <h5 className="font-heading font-semibold mb-4">Resources</h5>
+            <h5 className="font-heading font-semibold mb-4 text-green-700 pb-1 border-b border-green-100">Resources</h5>
             <ul className="text-sm space-y-2">
               <li>
                 <a href="#" className="text-neutral-dark hover:text-primary transition-colors">Plant Identification Guide</a>
@@ -62,16 +62,16 @@ export default function Footer() {
           </div>
           
           <div>
-            <h5 className="font-heading font-semibold mb-4">Connect</h5>
+            <h5 className="font-heading font-semibold mb-4 text-green-700 pb-1 border-b border-green-100">Connect</h5>
             <div className="flex space-x-4 mb-4">
-              <a href="#" className="text-neutral-dark hover:text-primary transition-colors">
-                <Twitter className="h-5 w-5" />
+              <a href="#" className="flex items-center justify-center h-8 w-8 rounded-full bg-white/50 text-green-700 hover:bg-primary hover:text-white transition-colors">
+                <Twitter className="h-4 w-4" />
               </a>
-              <a href="#" className="text-neutral-dark hover:text-primary transition-colors">
-                <Github className="h-5 w-5" />
+              <a href="#" className="flex items-center justify-center h-8 w-8 rounded-full bg-white/50 text-green-700 hover:bg-primary hover:text-white transition-colors">
+                <Github className="h-4 w-4" />
               </a>
-              <a href="#" className="text-neutral-dark hover:text-primary transition-colors">
-                <Linkedin className="h-5 w-5" />
+              <a href="#" className="flex items-center justify-center h-8 w-8 rounded-full bg-white/50 text-green-700 hover:bg-primary hover:text-white transition-colors">
+                <Linkedin className="h-4 w-4" />
               </a>
             </div>
             <p className="text-sm text-neutral-dark">

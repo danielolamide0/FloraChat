@@ -186,7 +186,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-4">
-          <div className="h-[300px] overflow-y-auto space-y-4 mb-4 p-3 rounded-md border border-green-100 bg-white/50 backdrop-blur-sm shadow-inner">
+          <div className="h-[300px] overflow-y-auto space-y-4 mb-4 p-3 rounded-md border border-green-100 bg-white/70 backdrop-blur-md shadow-inner">
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -248,7 +248,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me about plants..."
-              className="resize-none bg-white/70 backdrop-blur-sm border-green-100 focus-visible:ring-green-400 focus-visible:border-green-300"
+              className="resize-none bg-white/80 backdrop-blur-md border-green-100 focus-visible:ring-green-400 focus-visible:border-green-300 placeholder:text-green-700/60"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -259,7 +259,7 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
             <Button
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className="shrink-0"
+              className="shrink-0 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400"
               variant="default"
             >
               <Send className="h-4 w-4" />
