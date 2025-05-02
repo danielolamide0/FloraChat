@@ -15,6 +15,99 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Simple localStorage-based history storage
+const saveIdentification = (username: string, identification: any) => {
+  try {
+    // Get existing history
+    const historyKey = `floraChat_history_${username}`;
+    const existingHistory = localStorage.getItem(historyKey);
+    const history = existingHistory ? JSON.parse(existingHistory) : [];
+    
+    // Create a new identification with ID and timestamp
+    const newIdentification = {
+      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      ...identification,
+      createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+      isFavorite: false
+    };
+    
+    // Add to history
+    history.unshift(newIdentification);
+    
+    // Save back to localStorage
+    localStorage.setItem(historyKey, JSON.stringify(history));
+    
+    return newIdentification;
+  } catch (e) {
+    console.error('Error saving identification:', e);
+    throw e;
+  }
+};
+
+export function saveToHistory(username: string, data: any) {
+  return saveIdentification(username, data);
+}
+
+export function getHistory(username: string) {
+  try {
+    const historyKey = `floraChat_history_${username}`;
+    const historyData = localStorage.getItem(historyKey);
+    return historyData ? JSON.parse(historyData) : [];
+  } catch (e) {
+    console.error('Error getting history:', e);
+    return [];
+  }
+}
+
+export function getFavorites(username: string) {
+  try {
+    const historyKey = `floraChat_history_${username}`;
+    const historyData = localStorage.getItem(historyKey);
+    const history = historyData ? JSON.parse(historyData) : [];
+    return history.filter((item: any) => item.isFavorite);
+  } catch (e) {
+    console.error('Error getting favorites:', e);
+    return [];
+  }
+}
+
+export function toggleFavorite(username: string, identificationId: string, isFavorite: boolean) {
+  try {
+    const historyKey = `floraChat_history_${username}`;
+    const historyData = localStorage.getItem(historyKey);
+    const history = historyData ? JSON.parse(historyData) : [];
+    
+    const updatedHistory = history.map((item: any) => {
+      if (item.id === identificationId) {
+        return { ...item, isFavorite };
+      }
+      return item;
+    });
+    
+    localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+    return { id: identificationId, isFavorite };
+  } catch (e) {
+    console.error('Error toggling favorite:', e);
+    throw e;
+  }
+}
+
+export function deleteIdentification(username: string, identificationId: string) {
+  try {
+    const historyKey = `floraChat_history_${username}`;
+    const historyData = localStorage.getItem(historyKey);
+    const history = historyData ? JSON.parse(historyData) : [];
+    
+    const updatedHistory = history.filter((item: any) => item.id !== identificationId);
+    
+    localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+    return { success: true, id: identificationId };
+  } catch (e) {
+    console.error('Error deleting identification:', e);
+    throw e;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -39,24 +132,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // Call the login/register API
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username }),
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Login failed');
+      // Simple localStorage-based login
+      if (!username.trim()) {
+        throw new Error('Username is required');
       }
       
-      const userData = await response.json();
-      
       // Store user in state and localStorage
-      const newUser = { username: userData.username };
+      const newUser = { username: username.trim() };
       setUser(newUser);
       localStorage.setItem('floraChat_user', JSON.stringify(newUser));
       
