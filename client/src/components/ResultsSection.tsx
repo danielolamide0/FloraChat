@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Bookmark, PlusCircle } from "lucide-react";
+import { Download, Bookmark, PlusCircle, Star, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PlantIdentificationResult } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 
 interface ResultsSectionProps {
   isLoading: boolean;
@@ -23,14 +25,29 @@ export default function ResultsSection({
   onNewIdentification
 }: ResultsSectionProps) {
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const [isSaving, setIsSaving] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [savedIdentificationId, setSavedIdentificationId] = useState<string | null>(null);
 
   const handleSaveToHistory = async () => {
     if (!results) return;
     
+    if (!isAuthenticated) {
+      toast({
+        title: "Login required",
+        description: "Please login to save identifications to your history.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+    
     setIsSaving(true);
     try {
-      await apiRequest('POST', '/api/identifications', {
+      // Create data to save
+      const identificationData = {
         scientificName: results.scientificName,
         commonName: results.commonName,
         family: results.family,
@@ -41,17 +58,32 @@ export default function ResultsSection({
         habitat: results.habitat,
         description: results.description,
         imageUrl: uploadedImage,
-        similarPlants: results.similarPlants
+        referenceImageUrl: results.referenceImageUrl,
+        similarPlants: results.similarPlants,
+      };
+      
+      // Save to user's history
+      const response = await fetch(`/api/users/${user?.username}/history`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(identificationData),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save to history');
+      }
+      
+      const savedData = await response.json();
+      setSavedIdentificationId(savedData.id);
       
       toast({
         title: "Saved to history",
         description: "This identification has been added to your history.",
       });
-      
-      // Invalidate the identifications query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/identifications'] });
     } catch (error) {
+      console.error('Save error:', error);
       toast({
         title: "Error",
         description: "Failed to save identification to history.",
@@ -59,6 +91,57 @@ export default function ResultsSection({
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+  
+  const handleToggleFavorite = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login required",
+        description: "Please login to save identifications to your favorites.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+    
+    if (!savedIdentificationId) {
+      toast({
+        title: "Save first",
+        description: "Please save to history before adding to favorites.",
+      });
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/users/${user?.username}/favorites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          identificationId: savedIdentificationId, 
+          isFavorite: !isFavorite 
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+      
+      setIsFavorite(!isFavorite);
+      
+      toast({
+        title: isFavorite ? "Removed from favorites" : "Added to favorites",
+        description: `The plant has been ${isFavorite ? 'removed from' : 'added to'} your favorites.`,
+      });
+    } catch (error) {
+      console.error('Favorite toggle error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update favorite status.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -235,14 +318,49 @@ export default function ResultsSection({
                     >
                       <Download className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Export Data
                     </Button>
-                    <Button 
-                      size="sm"
-                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm text-xs sm:text-sm"
-                      onClick={handleSaveToHistory}
-                      disabled={isSaving}
-                    >
-                      <Bookmark className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Save to History
-                    </Button>
+                    
+                    {savedIdentificationId ? (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className={`${isFavorite 
+                          ? 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100' 
+                          : 'border-green-200 text-green-700 hover:bg-green-50'} font-heading font-medium shadow-sm text-xs sm:text-sm`}
+                        onClick={handleToggleFavorite}
+                      >
+                        <Star className={`mr-1 h-3 w-3 sm:h-4 sm:w-4 ${isFavorite ? 'fill-yellow-500' : ''}`} /> 
+                        {isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                      </Button>
+                    ) : (
+                      <Button 
+                        size="sm"
+                        className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm text-xs sm:text-sm"
+                        onClick={handleSaveToHistory}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <>
+                            <div className="mr-1 h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-green-200 border-t-white" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Save to History
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
+                    {!isAuthenticated && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-green-700 hover:text-green-800 font-heading font-medium text-xs sm:text-sm"
+                        onClick={() => navigate('/login')}
+                      >
+                        <LogIn className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Login to save plants
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

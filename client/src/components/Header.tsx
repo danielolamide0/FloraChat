@@ -1,11 +1,32 @@
 import { Link, useLocation } from "wouter";
-import { Leaf } from "lucide-react";
+import { Leaf, User, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Header() {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
+  const { toast } = useToast();
+  
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully",
+    });
+    setMobileMenuOpen(false);
+  };
 
   return (
     <header className="py-4 md:py-6 bg-white/40 shadow-lg border-b border-green-100 sticky top-0 z-50">
@@ -24,7 +45,7 @@ export default function Header() {
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:block">
+          <nav className="hidden md:flex items-center space-x-6">
             <ul className="flex space-x-6">
               <li>
                 <Link href="/" className={`font-heading font-medium ${location === "/" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
@@ -42,6 +63,52 @@ export default function Header() {
                 </Link>
               </li>
             </ul>
+            
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8 border border-green-200">
+                      <AvatarFallback className="bg-gradient-to-r from-green-600 to-green-500 text-white">
+                        {user?.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-0.5">
+                      <p className="text-sm font-medium">{user?.username}</p>
+                      <p className="text-xs text-muted-foreground">Logged in</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-4 border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800"
+                asChild
+              >
+                <Link href="/login">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
+                </Link>
+              </Button>
+            )}
           </nav>
           
           {/* Mobile Menu Button */}
@@ -91,6 +158,47 @@ export default function Header() {
                     About
                   </Link>
                 </li>
+                
+                {isAuthenticated ? (
+                  <>
+                    <li>
+                      <Link 
+                        href="/profile"
+                        className={`block py-2.5 px-4 font-heading font-medium rounded-md ${location === "/profile" ? "bg-primary text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <div className="flex items-center">
+                          <User className="mr-2 h-4 w-4" />
+                          Profile ({user?.username})
+                        </div>
+                      </Link>
+                    </li>
+                    <li>
+                      <button 
+                        className="block w-full text-left py-2.5 px-4 font-heading font-medium rounded-md text-red-600 hover:bg-red-50"
+                        onClick={handleLogout}
+                      >
+                        <div className="flex items-center">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Log out
+                        </div>
+                      </button>
+                    </li>
+                  </>
+                ) : (
+                  <li>
+                    <Link 
+                      href="/login"
+                      className="block py-2.5 px-4 font-heading font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <div className="flex items-center">
+                        <LogIn className="mr-2 h-4 w-4" />
+                        Login
+                      </div>
+                    </Link>
+                  </li>
+                )}
               </ul>
             </nav>
           </div>
