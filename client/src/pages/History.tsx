@@ -1,136 +1,341 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
-import { PlantIdentification } from "@shared/schema";
-import { Eye, Trash2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { useEffect, useState } from 'react';
+import { useAuth, getHistory, getFavorites, toggleFavorite, deleteIdentification } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Heart, Trash2, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function History() {
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const isMobile = useIsMobile();
   
-  const {
-    data: identifications,
-    isLoading,
-    isError,
-    refetch
-  } = useQuery<PlantIdentification[]>({
-    queryKey: ['/api/identifications'],
-  });
-
-  const handleDelete = async (id: number) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [identifications, setIdentifications] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('all');
+  
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        // Get history from Firebase via our context functions
+        const historyData = await getHistory(user.username);
+        setIdentifications(historyData || []);
+      } catch (error) {
+        console.error('Error fetching history:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load identification history',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchHistory();
+  }, [user, toast]);
+  
+  const handleToggleFavorite = async (id: string, currentState: boolean) => {
+    if (!user) return;
+    
     try {
-      await apiRequest('DELETE', `/api/identifications/${id}`);
+      // Use Firebase-based function
+      await toggleFavorite(user.username, id, !currentState);
+      
+      // Update the UI
+      setIdentifications(prev => 
+        prev.map(item => 
+          item.id === id ? { ...item, isFavorite: !currentState } : item
+        )
+      );
+      
       toast({
-        title: "Identification deleted",
-        description: "The identification has been removed from your history.",
+        title: !currentState ? 'Added to favorites' : 'Removed from favorites',
+        description: 'Your identification has been updated',
       });
-      refetch();
     } catch (error) {
+      console.error('Error toggling favorite:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete identification.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update favorite status',
+        variant: 'destructive',
       });
     }
   };
-
-  return (
-    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl md:text-4xl font-heading font-bold mb-8">
-        <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat</span> Identification History
-      </h1>
+  
+  const handleDeleteIdentification = async (id: string) => {
+    if (!user) return;
+    
+    if (!confirm('Are you sure you want to delete this identification?')) {
+      return;
+    }
+    
+    try {
+      // Use Firebase-based function
+      await deleteIdentification(user.username, id);
       
-      <Card className="mb-8">
-        <CardContent className="p-6">
+      // Update the UI
+      setIdentifications(prev => prev.filter(item => item.id !== id));
+      
+      toast({
+        title: 'Deleted',
+        description: 'Identification has been removed from history',
+      });
+    } catch (error) {
+      console.error('Error deleting identification:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete identification',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  // Filter based on active tab
+  const filteredIdentifications = activeTab === 'favorites'
+    ? identifications.filter(item => item.isFavorite)
+    : identifications;
+  
+  const formatDate = (timestamp: { seconds: number, nanoseconds: number }) => {
+    if (!timestamp) return 'Unknown date';
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">Identification History</h1>
+        </div>
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="all">All Identifications</TabsTrigger>
+          <TabsTrigger value="favorites">Favorites</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all" className="space-y-4 mt-4">
           {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 pb-4 border-b">
-                  <Skeleton className="h-16 w-16 rounded" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-4 w-24" />
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="bg-white/50 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-6 w-1/3" />
+                  <Skeleton className="h-4 w-1/4 mt-1" />
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start space-x-4">
+                    <Skeleton className="h-24 w-24 rounded-md" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
                   </div>
-                  <Skeleton className="h-8 w-16" />
-                </div>
-              ))}
-            </div>
-          ) : isError ? (
-            <div className="text-center py-8">
-              <p className="text-lg font-medium text-red-500">Failed to load identification history.</p>
-              <Button onClick={() => refetch()} variant="outline" className="mt-4">
-                Try Again
-              </Button>
-            </div>
-          ) : identifications && identifications.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-neutral-light border-b">
-                  <tr>
-                    <th className="text-left py-3 px-4 font-heading font-medium text-sm text-neutral-dark">Image</th>
-                    <th className="text-left py-3 px-4 font-heading font-medium text-sm text-neutral-dark">Species</th>
-                    <th className="text-left py-3 px-4 font-heading font-medium text-sm text-neutral-dark">Date</th>
-                    <th className="text-left py-3 px-4 font-heading font-medium text-sm text-neutral-dark">Confidence</th>
-                    <th className="text-left py-3 px-4 font-heading font-medium text-sm text-neutral-dark">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {identifications.map((item) => (
-                    <tr key={item.id} className="border-b hover:bg-neutral-light">
-                      <td className="py-2 px-4">
-                        <div className="w-16 h-16 rounded overflow-hidden">
-                          <img src={item.imageUrl} alt={item.scientificName} className="w-full h-full object-cover" />
-                        </div>
-                      </td>
-                      <td className="py-2 px-4">
-                        <p className="font-medium">{item.scientificName}</p>
-                        <p className="text-sm text-neutral-dark">{item.commonName}</p>
-                      </td>
-                      <td className="py-2 px-4 text-sm">
-                        {item.identifiedAt ? new Date(item.identifiedAt).toLocaleDateString() : 'Unknown'}
-                      </td>
-                      <td className="py-2 px-4">
-                        <div className="bg-gradient-to-r from-green-600 to-green-500 text-white text-xs px-3 py-1 rounded-full inline-block shadow-sm">
-                          {item.confidence}%
-                        </div>
-                      </td>
-                      <td className="py-2 px-4">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => window.location.href = `/identification/${item.id}`}
-                          className="text-primary hover:text-primary-dark mr-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(item.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : filteredIdentifications.length === 0 ? (
+            <Card className="bg-white/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>No identifications yet</CardTitle>
+                <CardDescription>
+                  Identify plants to see your history here
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => navigate('/')}>
+                  Identify a Plant
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-lg mb-2 font-medium">No identifications found</p>
-              <p className="text-neutral-dark mb-6">You haven't identified any plants yet.</p>
-              <Button onClick={() => window.location.href = "/"} className="bg-primary hover:bg-primary-dark text-white">
-                Identify Plant
-              </Button>
-            </div>
+            filteredIdentifications.map((item) => (
+              <Card key={item.id} className="bg-white/50 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">{item.scientificName}</CardTitle>
+                      <CardDescription>
+                        {item.commonName || 'No common name available'}
+                      </CardDescription>
+                    </div>
+                    <Badge variant={item.confidence > 60 ? "default" : "outline"} className="bg-green-100 text-green-800 hover:bg-green-200">
+                      {Math.round(item.confidence)}% match
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-shrink-0">
+                      <img 
+                        src={item.imageUrl} 
+                        alt={item.scientificName}
+                        className="rounded-md h-36 w-36 object-cover"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Family: {item.family || 'Unknown'}</p>
+                      <p className="text-sm font-medium">Genus: {item.genus || 'Unknown'}</p>
+                      {item.distribution && (
+                        <p className="text-sm">Distribution: {item.distribution}</p>
+                      )}
+                      {item.habitat && (
+                        <p className="text-sm">Habitat: {item.habitat}</p>
+                      )}
+                      <p className="text-xs text-slate-500 mt-2">
+                        Identified on {formatDate(item.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end space-x-2 pt-0">
+                  <Button
+                    variant="ghost"
+                    size={isMobile ? "sm" : "default"}
+                    onClick={() => handleToggleFavorite(item.id, item.isFavorite)}
+                    className={item.isFavorite ? "text-red-500 hover:text-red-600" : "text-slate-500 hover:text-slate-700"}
+                  >
+                    <Heart className={`h-5 w-5 ${item.isFavorite ? "fill-current" : ""}`} />
+                    <span className="ml-2">{item.isFavorite ? "Favorited" : "Favorite"}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size={isMobile ? "sm" : "default"}
+                    onClick={() => handleDeleteIdentification(item.id)}
+                    className="text-slate-500 hover:text-red-600"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                    <span className="ml-2">Delete</span>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+        
+        <TabsContent value="favorites" className="space-y-4 mt-4">
+          {isLoading ? (
+            Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i} className="bg-white/50 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-6 w-1/3" />
+                  <Skeleton className="h-4 w-1/4 mt-1" />
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start space-x-4">
+                    <Skeleton className="h-24 w-24 rounded-md" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : filteredIdentifications.length === 0 ? (
+            <Card className="bg-white/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>No favorites yet</CardTitle>
+                <CardDescription>
+                  Add identifications to your favorites to see them here
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setActiveTab('all')}>
+                  View All Identifications
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredIdentifications.map((item) => (
+              <Card key={item.id} className="bg-white/50 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">{item.scientificName}</CardTitle>
+                      <CardDescription>
+                        {item.commonName || 'No common name available'}
+                      </CardDescription>
+                    </div>
+                    <Badge variant={item.confidence > 60 ? "default" : "outline"} className="bg-green-100 text-green-800 hover:bg-green-200">
+                      {Math.round(item.confidence)}% match
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-shrink-0">
+                      <img 
+                        src={item.imageUrl} 
+                        alt={item.scientificName}
+                        className="rounded-md h-36 w-36 object-cover"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Family: {item.family || 'Unknown'}</p>
+                      <p className="text-sm font-medium">Genus: {item.genus || 'Unknown'}</p>
+                      {item.distribution && (
+                        <p className="text-sm">Distribution: {item.distribution}</p>
+                      )}
+                      {item.habitat && (
+                        <p className="text-sm">Habitat: {item.habitat}</p>
+                      )}
+                      <p className="text-xs text-slate-500 mt-2">
+                        Identified on {formatDate(item.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end space-x-2 pt-0">
+                  <Button
+                    variant="ghost"
+                    size={isMobile ? "sm" : "default"}
+                    onClick={() => handleToggleFavorite(item.id, item.isFavorite)}
+                    className="text-red-500 hover:text-red-600"
+                  >
+                    <Heart className="h-5 w-5 fill-current" />
+                    <span className="ml-2">Unfavorite</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size={isMobile ? "sm" : "default"}
+                    onClick={() => handleDeleteIdentification(item.id)}
+                    className="text-slate-500 hover:text-red-600"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                    <span className="ml-2">Delete</span>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

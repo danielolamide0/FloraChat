@@ -1,4 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { 
+  saveIdentificationToHistory, 
+  getUserIdentificationHistory,
+  getUserFavorites,
+  toggleFavorite as toggleFavoriteFirebase,
+  deleteIdentification as deleteIdentificationFirebase,
+  getUser,
+  createUser,
+  updateUserLastLogin
+} from '@/firebase/user';
 
 interface User {
   username: string;
@@ -15,96 +25,49 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Simple localStorage-based history storage
-const saveIdentification = (username: string, identification: any) => {
+// Export the history management functions using Firebase
+export async function saveToHistory(username: string, data: any) {
   try {
-    // Get existing history
-    const historyKey = `floraChat_history_${username}`;
-    const existingHistory = localStorage.getItem(historyKey);
-    const history = existingHistory ? JSON.parse(existingHistory) : [];
-    
-    // Create a new identification with ID and timestamp
-    const newIdentification = {
-      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      ...identification,
-      createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
-      isFavorite: false
-    };
-    
-    // Add to history
-    history.unshift(newIdentification);
-    
-    // Save back to localStorage
-    localStorage.setItem(historyKey, JSON.stringify(history));
-    
-    return newIdentification;
-  } catch (e) {
-    console.error('Error saving identification:', e);
-    throw e;
+    return await saveIdentificationToHistory(username, data);
+  } catch (error) {
+    console.error('Error saving identification to history:', error);
+    throw error;
   }
-};
-
-export function saveToHistory(username: string, data: any) {
-  return saveIdentification(username, data);
 }
 
-export function getHistory(username: string) {
+export async function getHistory(username: string) {
   try {
-    const historyKey = `floraChat_history_${username}`;
-    const historyData = localStorage.getItem(historyKey);
-    return historyData ? JSON.parse(historyData) : [];
-  } catch (e) {
-    console.error('Error getting history:', e);
+    return await getUserIdentificationHistory(username);
+  } catch (error) {
+    console.error('Error getting user history:', error);
     return [];
   }
 }
 
-export function getFavorites(username: string) {
+export async function getFavorites(username: string) {
   try {
-    const historyKey = `floraChat_history_${username}`;
-    const historyData = localStorage.getItem(historyKey);
-    const history = historyData ? JSON.parse(historyData) : [];
-    return history.filter((item: any) => item.isFavorite);
-  } catch (e) {
-    console.error('Error getting favorites:', e);
+    return await getUserFavorites(username);
+  } catch (error) {
+    console.error('Error getting user favorites:', error);
     return [];
   }
 }
 
-export function toggleFavorite(username: string, identificationId: string, isFavorite: boolean) {
+export async function toggleFavorite(username: string, identificationId: string, isFavorite: boolean) {
   try {
-    const historyKey = `floraChat_history_${username}`;
-    const historyData = localStorage.getItem(historyKey);
-    const history = historyData ? JSON.parse(historyData) : [];
-    
-    const updatedHistory = history.map((item: any) => {
-      if (item.id === identificationId) {
-        return { ...item, isFavorite };
-      }
-      return item;
-    });
-    
-    localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-    return { id: identificationId, isFavorite };
-  } catch (e) {
-    console.error('Error toggling favorite:', e);
-    throw e;
+    return await toggleFavoriteFirebase(username, identificationId, isFavorite);
+  } catch (error) {
+    console.error('Error toggling favorite status:', error);
+    throw error;
   }
 }
 
-export function deleteIdentification(username: string, identificationId: string) {
+export async function deleteIdentification(username: string, identificationId: string) {
   try {
-    const historyKey = `floraChat_history_${username}`;
-    const historyData = localStorage.getItem(historyKey);
-    const history = historyData ? JSON.parse(historyData) : [];
-    
-    const updatedHistory = history.filter((item: any) => item.id !== identificationId);
-    
-    localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-    return { success: true, id: identificationId };
-  } catch (e) {
-    console.error('Error deleting identification:', e);
-    throw e;
+    return await deleteIdentificationFirebase(username, identificationId);
+  } catch (error) {
+    console.error('Error deleting identification:', error);
+    throw error;
   }
 }
 
@@ -132,9 +95,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      // Simple localStorage-based login
       if (!username.trim()) {
         throw new Error('Username is required');
+      }
+      
+      // Check if the user exists in Firebase
+      const existingUser = await getUser(username.trim());
+      
+      if (!existingUser) {
+        // Create a new user if they don't exist
+        await createUser(username.trim());
+      } else {
+        // Update last login time for existing user
+        await updateUserLastLogin(username.trim());
       }
       
       // Store user in state and localStorage
@@ -145,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       setError(err.message || 'Failed to login');
       console.error('Login error:', err);
+      throw err; // Rethrow so the UI can handle it
     } finally {
       setIsLoading(false);
     }

@@ -19,9 +19,9 @@ function Router() {
   
   // Redirect to login if not authenticated (except for public routes)
   useEffect(() => {
-    const publicRoutes = ['/login', '/about'];
+    const publicRoutes = ['/auth', '/about'];
     if (!isLoading && !isAuthenticated && !publicRoutes.includes(location)) {
-      setLocation('/login');
+      setLocation('/auth');
     }
   }, [isAuthenticated, isLoading, location]);
 
@@ -46,7 +46,7 @@ function Router() {
       }}></div>
 
       <Switch>
-        <Route path="/login" component={LoginPage} />
+        <Route path="/auth" component={LoginPage} />
         <Route>
           <Header />
           <div className="flex-grow container mx-auto px-4 pt-6 pb-12">
