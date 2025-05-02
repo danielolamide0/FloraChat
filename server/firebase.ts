@@ -1,5 +1,20 @@
 import { initializeApp } from 'firebase/app';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  getDocs, 
+  query, 
+  where, 
+  arrayUnion, 
+  arrayRemove, 
+  serverTimestamp, 
+  Timestamp 
+} from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -14,10 +29,12 @@ const firebaseConfig = {
 // Initialize Firebase
 let app: any = null;
 let storage: any = null;
+let db: any = null;
 
 try {
   app = initializeApp(firebaseConfig);
   storage = getStorage(app);
+  db = getFirestore(app);
   console.log("Firebase initialized successfully");
 } catch (error: any) {
   console.error("Error initializing Firebase:", error);
@@ -86,4 +103,186 @@ export function isFirebaseConfigured(): boolean {
   );
 }
 
-export { storage as firebaseStorage };
+// User management functions
+export async function getUser(username: string) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    const userRef = doc(db, 'users', username);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      return userSnap.data();
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting user:', error);
+    throw error;
+  }
+}
+
+export async function createUser(username: string) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    const userRef = doc(db, 'users', username);
+    const userData = {
+      username,
+      createdAt: serverTimestamp(),
+      lastLogin: serverTimestamp()
+    };
+    
+    await setDoc(userRef, userData);
+    return userData;
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+}
+
+export async function updateUserLastLogin(username: string) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    const userRef = doc(db, 'users', username);
+    await updateDoc(userRef, {
+      lastLogin: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error updating user last login:', error);
+    throw error;
+  }
+}
+
+// Plant identification history management
+export async function saveIdentificationToHistory(username: string, identificationData: any) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    // Add a timestamp to the identification data
+    const identificationWithTimestamp = {
+      ...identificationData,
+      createdAt: serverTimestamp(),
+      isFavorite: false // Default to not a favorite
+    };
+    
+    // Create a unique ID for this identification (could be timestamp-based)
+    const identificationId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    // Save to the user's identifications collection
+    const identificationRef = doc(db, `users/${username}/identifications`, identificationId);
+    await setDoc(identificationRef, identificationWithTimestamp);
+    
+    return {
+      id: identificationId,
+      ...identificationWithTimestamp
+    };
+  } catch (error) {
+    console.error('Error saving identification to history:', error);
+    throw error;
+  }
+}
+
+export async function getUserIdentificationHistory(username: string) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    const identificationsRef = collection(db, `users/${username}/identifications`);
+    const identificationSnapshot = await getDocs(identificationsRef);
+    
+    const identifications = identificationSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Sort by createdAt timestamp in descending order (newest first)
+    return identifications.sort((a, b) => {
+      const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+      const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+      return bTime - aTime;
+    });
+  } catch (error) {
+    console.error('Error getting user identification history:', error);
+    throw error;
+  }
+}
+
+export async function getUserFavorites(username: string) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    const identificationsRef = collection(db, `users/${username}/identifications`);
+    const q = query(identificationsRef, where("isFavorite", "==", true));
+    const favoritesSnapshot = await getDocs(q);
+    
+    const favorites = favoritesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Sort by createdAt timestamp in descending order (newest first)
+    return favorites.sort((a, b) => {
+      const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+      const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+      return bTime - aTime;
+    });
+  } catch (error) {
+    console.error('Error getting user favorites:', error);
+    throw error;
+  }
+}
+
+export async function toggleFavorite(username: string, identificationId: string, isFavorite: boolean) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    const identificationRef = doc(db, `users/${username}/identifications`, identificationId);
+    await updateDoc(identificationRef, {
+      isFavorite
+    });
+    return { id: identificationId, isFavorite };
+  } catch (error) {
+    console.error('Error toggling favorite status:', error);
+    throw error;
+  }
+}
+
+export async function deleteIdentification(username: string, identificationId: string) {
+  if (!db) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  try {
+    const identificationRef = doc(db, `users/${username}/identifications`, identificationId);
+    await updateDoc(identificationRef, { deleted: true });
+    return { success: true, id: identificationId };
+  } catch (error) {
+    console.error('Error deleting identification:', error);
+    throw error;
+  }
+}
+
+export { storage as firebaseStorage, db as firestore };

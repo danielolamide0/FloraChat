@@ -10,7 +10,18 @@ import { OpenAI } from 'openai';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadImageToFirebase, isFirebaseConfigured } from './firebase';
+import { 
+  uploadImageToFirebase, 
+  isFirebaseConfigured,
+  getUser,
+  createUser,
+  updateUserLastLogin,
+  saveIdentificationToHistory,
+  getUserIdentificationHistory,
+  getUserFavorites,
+  toggleFavorite,
+  deleteIdentification 
+} from './firebase';
 import { fetchPlantReferenceImage, fetchPlantImageFromCommons } from './utils/wiki-images';
 
 // Configure multer for file uploads
@@ -36,6 +47,154 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // User Routes
+  // Login/Register a user
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.body;
+      
+      if (!username || typeof username !== 'string' || username.trim() === '') {
+        return res.status(400).json({ message: "Username is required" });
+      }
+      
+      // Check if user exists
+      let user = await getUser(username);
+      
+      if (!user) {
+        // Create new user if they don't exist
+        user = await createUser(username);
+        console.log(`Created new user: ${username}`);
+      } else {
+        // Update last login time for existing user
+        await updateUserLastLogin(username);
+        console.log(`User logged in: ${username}`);
+      }
+      
+      return res.status(200).json({ success: true, username });
+    } catch (error: any) {
+      console.error("Error in user login/register:", error);
+      return res.status(500).json({ 
+        message: "Error processing login", 
+        error: error.message || "Unknown error"
+      });
+    }
+  });
+
+  // Get user identification history
+  app.get("/api/users/:username/history", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      
+      // Check if user exists
+      const user = await getUser(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const history = await getUserIdentificationHistory(username);
+      return res.status(200).json(history);
+    } catch (error: any) {
+      console.error("Error fetching user history:", error);
+      return res.status(500).json({ 
+        message: "Error fetching history", 
+        error: error.message || "Unknown error"
+      });
+    }
+  });
+
+  // Get user favorites
+  app.get("/api/users/:username/favorites", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      
+      // Check if user exists
+      const user = await getUser(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const favorites = await getUserFavorites(username);
+      return res.status(200).json(favorites);
+    } catch (error: any) {
+      console.error("Error fetching user favorites:", error);
+      return res.status(500).json({ 
+        message: "Error fetching favorites", 
+        error: error.message || "Unknown error"
+      });
+    }
+  });
+
+  // Toggle favorite status for an identification
+  app.post("/api/users/:username/favorites", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { identificationId, isFavorite } = req.body;
+      
+      if (!identificationId) {
+        return res.status(400).json({ message: "Identification ID is required" });
+      }
+      
+      // Check if user exists
+      const user = await getUser(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const result = await toggleFavorite(username, identificationId, isFavorite);
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error("Error toggling favorite status:", error);
+      return res.status(500).json({ 
+        message: "Error updating favorite status", 
+        error: error.message || "Unknown error"
+      });
+    }
+  });
+
+  // Save an identification to user history
+  app.post("/api/users/:username/history", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const identificationData = req.body;
+      
+      // Check if user exists
+      const user = await getUser(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const savedIdentification = await saveIdentificationToHistory(username, identificationData);
+      return res.status(201).json(savedIdentification);
+    } catch (error: any) {
+      console.error("Error saving to history:", error);
+      return res.status(500).json({ 
+        message: "Error saving identification to history", 
+        error: error.message || "Unknown error"
+      });
+    }
+  });
+
+  // Delete an identification from user history
+  app.delete("/api/users/:username/history/:identificationId", async (req: Request, res: Response) => {
+    try {
+      const { username, identificationId } = req.params;
+      
+      // Check if user exists
+      const user = await getUser(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const result = await deleteIdentification(username, identificationId);
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error("Error deleting identification:", error);
+      return res.status(500).json({ 
+        message: "Error deleting identification", 
+        error: error.message || "Unknown error"
+      });
+    }
+  });
   // PlantNet API integration for plant identification
   app.post("/api/identify", upload.single("image"), async (req: any, res: Response) => {
     try {
