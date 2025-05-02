@@ -81,10 +81,17 @@ export default function ResultsSection({
       <Card>
         <CardContent className="p-6 md:p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-heading font-semibold">Identification Results</h3>
+            <h3 className="text-xl font-heading font-semibold flex items-center">
+              <div className="mr-2 p-1.5 rounded-full bg-gradient-to-br from-green-100 to-green-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                  <path d="M12 2a9 9 0 0 0-9 9c0 3.18 1.65 5.98 4.15 7.58.37.23.63.59.76 1 .1.33.17.67.21 1 .08.62.29 1.16.56 1.42.14.14.33.18.54.11s.37-.24.45-.45c.37-.98.89-1.92 1.56-2.75.47-.6 1.11-1.1 1.84-1.44.73-.35 1.55-.52 2.37-.52.82 0 1.64.17 2.37.52.73.35 1.37.85 1.84 1.44.67.83 1.19 1.77 1.56 2.75.08.21.24.39.45.45s.4.03.54-.11c.27-.25.48-.8.56-1.42.04-.33.11-.67.21-1 .13-.41.39-.77.76-1C19.35 16.98 21 14.18 21 11a9 9 0 0 0-9-9z" />
+                </svg>
+              </div>
+              <span>Identification Results</span>
+            </h3>
             <Button 
-              variant="ghost" 
-              className="text-primary hover:text-primary-dark font-medium transition-colors"
+              variant="outline" 
+              className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-medium transition-colors"
               onClick={onNewIdentification}
             >
               <PlusCircle className="mr-1 h-4 w-4" /> New Identification
@@ -157,12 +164,17 @@ export default function ResultsSection({
                     )}
                     
                     {results.referenceImageUrl && (
-                      <div className="mt-2 p-2 border border-neutral-200 rounded-lg">
-                        <p className="text-xs text-neutral-500 mb-1">Reference Image:</p>
+                      <div className="mt-2 p-2 border border-green-100 rounded-lg bg-white/60 backdrop-blur-sm shadow-sm">
+                        <p className="text-xs text-green-700 mb-1 font-medium flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                            <path d="M12 2a9 9 0 0 0-9 9c0 3.18 1.65 5.98 4.15 7.58.37.23.63.59.76 1 .1.33.17.67.21 1 .08.62.29 1.16.56 1.42.14.14.33.18.54.11s.37-.24.45-.45c.37-.98.89-1.92 1.56-2.75.47-.6 1.11-1.1 1.84-1.44.73-.35 1.55-.52 2.37-.52.82 0 1.64.17 2.37.52.73.35 1.37.85 1.84 1.44.67.83 1.19 1.77 1.56 2.75.08.21.24.39.45.45s.4.03.54-.11c.27-.25.48-.8.56-1.42.04-.33.11-.67.21-1 .13-.41.39-.77.76-1C19.35 16.98 21 14.18 21 11a9 9 0 0 0-9-9z" />
+                          </svg>
+                          Reference Image
+                        </p>
                         <img 
                           src={results.referenceImageUrl} 
                           alt={`Reference image of ${results.scientificName}`}
-                          className="w-full h-auto object-cover rounded" 
+                          className="w-full h-auto object-cover rounded shadow-sm" 
                         />
                       </div>
                     )}
@@ -179,11 +191,11 @@ export default function ResultsSection({
                       {results.commonName}
                     </p>
                     <div className="flex items-center mb-4">
-                      <div className="bg-primary-light text-white text-sm px-3 py-1 rounded-full mr-2">
+                      <div className="bg-gradient-to-r from-green-600 to-green-500 text-white text-sm px-3 py-1 rounded-full mr-2 shadow-sm">
                         {results.confidence}% Match
                       </div>
                       {results.category && (
-                        <div className="bg-secondary-light text-primary-dark text-sm px-3 py-1 rounded-full">
+                        <div className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full shadow-sm">
                           {results.category}
                         </div>
                       )}
@@ -191,23 +203,23 @@ export default function ResultsSection({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-neutral-light p-3 rounded">
-                      <p className="text-sm font-medium">Family</p>
+                    <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                      <p className="text-sm font-medium text-green-800">Family</p>
                       <p>{results.family}</p>
                     </div>
-                    <div className="bg-neutral-light p-3 rounded">
-                      <p className="text-sm font-medium">Genus</p>
+                    <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                      <p className="text-sm font-medium text-green-800">Genus</p>
                       <p>{results.genus}</p>
                     </div>
                     {results.distribution && (
-                      <div className="bg-neutral-light p-3 rounded">
-                        <p className="text-sm font-medium">Distribution</p>
+                      <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                        <p className="text-sm font-medium text-green-800">Distribution</p>
                         <p>{results.distribution}</p>
                       </div>
                     )}
                     {results.habitat && (
-                      <div className="bg-neutral-light p-3 rounded">
-                        <p className="text-sm font-medium">Habitat</p>
+                      <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                        <p className="text-sm font-medium text-green-800">Habitat</p>
                         <p>{results.habitat}</p>
                       </div>
                     )}
@@ -216,13 +228,13 @@ export default function ResultsSection({
                   <div className="flex justify-end">
                     <Button
                       variant="outline"
-                      className="bg-accent hover:bg-accent-dark text-neutral-dark font-heading font-medium mr-3"
+                      className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-heading font-medium mr-3 shadow-sm"
                       onClick={handleExportData}
                     >
                       <Download className="mr-1 h-4 w-4" /> Export Data
                     </Button>
                     <Button 
-                      className="bg-primary hover:bg-primary-dark text-white font-heading font-medium"
+                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm"
                       onClick={handleSaveToHistory}
                       disabled={isSaving}
                     >
