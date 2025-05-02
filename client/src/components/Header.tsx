@@ -8,7 +8,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="py-4 md:py-6 bg-white/70 backdrop-blur-md shadow-lg border-b border-green-100 sticky top-0 z-50">
+    <header className="py-4 md:py-6 bg-white/70 shadow-lg border-b border-green-100 sticky top-0 z-50">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
