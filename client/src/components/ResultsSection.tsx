@@ -80,7 +80,7 @@ export default function ResultsSection({
     <section id="results-section" className="mb-12">
       <Card>
         <CardContent className="p-6 md:p-8">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <h3 className="text-xl font-heading font-semibold flex items-center">
               <div className="mr-2 p-1.5 rounded-full bg-gradient-to-br from-green-100 to-green-200">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
@@ -91,8 +91,9 @@ export default function ResultsSection({
             </h3>
             <Button 
               variant="outline" 
-              className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-medium transition-colors"
+              className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-medium transition-colors text-sm md:text-base"
               onClick={onNewIdentification}
+              size="sm"
             >
               <PlusCircle className="mr-1 h-4 w-4" /> New Identification
             </Button>
@@ -184,18 +185,18 @@ export default function ResultsSection({
                 {/* Results Info */}
                 <div className="md:w-2/3">
                   <div className="mb-4">
-                    <h4 className="text-2xl font-heading font-semibold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent mb-1">
+                    <h4 className="text-xl md:text-2xl font-heading font-semibold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent mb-1 break-words">
                       {results.scientificName}
                     </h4>
-                    <p className="text-lg italic mb-2 text-slate-700">
+                    <p className="text-base md:text-lg italic mb-2 text-slate-700">
                       {results.commonName}
                     </p>
-                    <div className="flex items-center mb-4">
-                      <div className="bg-gradient-to-r from-green-600 to-green-500 text-white text-sm px-3 py-1 rounded-full mr-2 shadow-sm">
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      <div className="bg-gradient-to-r from-green-600 to-green-500 text-white text-xs md:text-sm px-2 md:px-3 py-0.5 md:py-1 rounded-full shadow-sm">
                         {results.confidence}% Match
                       </div>
                       {results.category && (
-                        <div className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full shadow-sm">
+                        <div className="bg-green-100 text-green-800 text-xs md:text-sm px-2 md:px-3 py-0.5 md:py-1 rounded-full shadow-sm">
                           {results.category}
                         </div>
                       )}
@@ -225,20 +226,22 @@ export default function ResultsSection({
                     )}
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-center sm:justify-end gap-3">
                     <Button
                       variant="outline"
-                      className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-heading font-medium mr-3 shadow-sm"
+                      size="sm"
+                      className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-heading font-medium shadow-sm text-xs sm:text-sm"
                       onClick={handleExportData}
                     >
-                      <Download className="mr-1 h-4 w-4" /> Export Data
+                      <Download className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Export Data
                     </Button>
                     <Button 
-                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm"
+                      size="sm"
+                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm text-xs sm:text-sm"
                       onClick={handleSaveToHistory}
                       disabled={isSaving}
                     >
-                      <Bookmark className="mr-1 h-4 w-4" /> Save to History
+                      <Bookmark className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Save to History
                     </Button>
                   </div>
                 </div>

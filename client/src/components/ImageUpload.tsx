@@ -85,34 +85,40 @@ export default function ImageUpload({ onImageCapture }: ImageUploadProps) {
             <TabsList className="mb-6 border-b border-green-100 w-full justify-start rounded-none bg-transparent p-0">
               <TabsTrigger 
                 value="upload"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-50 data-[state=active]:to-transparent data-[state=active]:text-green-700 px-4 py-2 transition-all"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-50 data-[state=active]:to-transparent data-[state=active]:text-green-700 px-3 md:px-4 py-2 transition-all text-sm md:text-base"
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Image
+                <Upload className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Upload</span> Image
               </TabsTrigger>
               <TabsTrigger 
                 value="camera"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-50 data-[state=active]:to-transparent data-[state=active]:text-green-700 px-4 py-2 transition-all"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-50 data-[state=active]:to-transparent data-[state=active]:text-green-700 px-3 md:px-4 py-2 transition-all text-sm md:text-base"
               >
-                <Camera className="h-4 w-4 mr-2" />
+                <Camera className="h-4 w-4 mr-1 md:mr-2" />
                 Use Camera
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="upload" className="slide-in mt-0">
               <div 
-                className={`upload-area rounded-lg p-8 text-center cursor-pointer bg-gradient-to-r from-green-50/90 to-white/90 backdrop-blur-sm border-dashed border-2 border-green-300 shadow-inner ${isDragging ? 'dragover' : ''}`}
+                className={`upload-area rounded-lg p-4 md:p-8 text-center cursor-pointer bg-gradient-to-r from-green-50/90 to-white/90 backdrop-blur-sm border-dashed border-2 border-green-300 shadow-inner ${isDragging ? 'dragover' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <div className="mx-auto mb-4 rounded-full p-5 bg-gradient-to-br from-green-100 to-green-50 shadow-sm inline-block">
-                  <Upload className="h-10 w-10 mx-auto text-green-600" />
+                <div className="mx-auto mb-3 md:mb-4 rounded-full p-3 md:p-5 bg-gradient-to-br from-green-100 to-green-50 shadow-sm inline-block">
+                  <Upload className="h-8 w-8 md:h-10 md:w-10 mx-auto text-green-600" />
                 </div>
-                <p className="mb-2 font-medium">Drag and drop your image here</p>
-                <p className="text-sm text-neutral-dark mb-4">or</p>
-                <Button className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm">
+                <p className="mb-2 font-medium text-sm md:text-base">
+                  <span className="hidden sm:inline">Drag and drop your image here</span>
+                  <span className="sm:hidden">Tap to upload</span>
+                </p>
+                <p className="text-xs md:text-sm text-neutral-dark mb-3 md:mb-4">
+                  <span className="hidden sm:inline">or</span>
+                  <span className="sm:hidden">Select from your gallery</span>
+                </p>
+                <Button size="sm" className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm text-xs md:text-sm">
                   Browse Files
                 </Button>
                 <input 
@@ -122,7 +128,7 @@ export default function ImageUpload({ onImageCapture }: ImageUploadProps) {
                   accept="image/*"
                   onChange={handleFileInputChange}
                 />
-                <p className="mt-4 text-sm text-neutral-dark">Supported formats: JPG, PNG, WEBP (up to 25MB)</p>
+                <p className="mt-3 md:mt-4 text-xs md:text-sm text-neutral-dark">Supported: JPG, PNG, WEBP (up to 25MB)</p>
               </div>
             </TabsContent>
             

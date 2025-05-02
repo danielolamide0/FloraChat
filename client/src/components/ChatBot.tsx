@@ -155,21 +155,21 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
 
   return (
     <Card className="mt-6">
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-2 px-4 md:px-6">
         <CardTitle className="flex items-center">
-          <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-full mr-3">
-            <Leaf className="h-5 w-5 text-green-600" />
+          <div className="bg-gradient-to-br from-green-100 to-green-200 p-1.5 md:p-2 rounded-full mr-2 md:mr-3">
+            <Leaf className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
           </div>
           <div className="flex flex-col">
-            <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat Assistant</span>
-            <span className="text-xs text-gray-500 -mt-1">for plant lovers & gardeners</span>
+            <span className="text-base md:text-lg bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat Assistant</span>
+            <span className="text-[10px] md:text-xs text-gray-500 -mt-1">for plant lovers & gardeners</span>
           </div>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs md:text-sm mt-1">
           {!uploadedImage ? (
             <div className="flex items-center text-muted-foreground">
-              <Upload className="h-4 w-4 mr-1" /> 
-              <Camera className="h-4 w-4 mx-1" />
+              <Upload className="h-3 w-3 md:h-4 md:w-4 mr-1" /> 
+              <Camera className="h-3 w-3 md:h-4 md:w-4 mx-1" />
               <span>Upload or capture a plant image for identification</span>
             </div>
           ) : identificationResults ? (
@@ -186,14 +186,14 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-4">
-          <div className="h-[300px] overflow-y-auto space-y-4 mb-4 p-3 rounded-md border border-green-100 bg-white/70 backdrop-blur-md shadow-inner">
+          <div className="h-[250px] md:h-[300px] overflow-y-auto space-y-3 md:space-y-4 mb-3 md:mb-4 p-2 md:p-3 rounded-md border border-green-100 bg-white/70 backdrop-blur-md shadow-inner">
             {messages.map((message, index) => (
               <div
                 key={index}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  className={`max-w-[85%] md:max-w-[80%] rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base ${
                     message.role === 'user'
                       ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-sm'
                       : 'bg-gradient-to-r from-green-50 to-green-100 border border-green-100 shadow-sm'
@@ -214,13 +214,13 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
                         
                         return (
                           <div key={i} className={`
-                            ${i > 0 ? 'mt-2' : ''} 
-                            ${isHeader ? 'font-bold text-lg mt-4 mb-2 text-green-700 bg-green-50 py-1 px-2 rounded-md inline-block' : ''}
-                            ${isIntro ? 'font-medium mb-3 text-green-800' : ''}
+                            ${i > 0 ? 'mt-1.5 md:mt-2' : ''} 
+                            ${isHeader ? 'font-bold text-base md:text-lg mt-3 md:mt-4 mb-1 md:mb-2 text-green-700 bg-green-50 py-0.5 md:py-1 px-2 rounded-md inline-block' : ''}
+                            ${isIntro ? 'font-medium mb-2 md:mb-3 text-green-800' : ''}
                           `}>
                             {line.trim() === '' ? <br /> : (
                               isBulletPoint ? 
-                                <span className="block pl-3 border-l-2 border-green-400 ml-2 py-1 bg-green-50/50 rounded-r-md">{line}</span> : 
+                                <span className="block pl-2 md:pl-3 border-l-2 border-green-400 ml-1 md:ml-2 py-0.5 md:py-1 bg-green-50/50 rounded-r-md text-sm md:text-base">{line}</span> : 
                                 line
                             )}
                           </div>
@@ -232,9 +232,9 @@ export default function ChatBot({ uploadedImage, identificationResults }: ChatBo
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg px-4 py-2 bg-gradient-to-r from-green-50 to-green-100 border border-green-100 shadow-sm">
+                <div className="max-w-[85%] md:max-w-[80%] rounded-lg px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-green-50 to-green-100 border border-green-100 shadow-sm text-sm md:text-base">
                   <div className="flex items-center">
-                    <div className="animate-pulse mr-2 h-4 w-4 rounded-full bg-green-400"></div>
+                    <div className="animate-pulse mr-2 h-3 w-3 md:h-4 md:w-4 rounded-full bg-green-400"></div>
                     <span>Thinking about plants...</span>
                   </div>
                 </div>
