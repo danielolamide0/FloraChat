@@ -46,8 +46,10 @@ export default function ResultsSection({
     
     setIsSaving(true);
     try {
-      // Create data to save
+      // Create data to save with current timestamp as ID
+      const identificationId = `id-${Date.now()}`;
       const identificationData = {
+        id: identificationId,
         scientificName: results.scientificName,
         commonName: results.commonName,
         family: results.family,
@@ -60,23 +62,52 @@ export default function ResultsSection({
         imageUrl: uploadedImage,
         referenceImageUrl: results.referenceImageUrl,
         similarPlants: results.similarPlants,
+        createdAt: new Date().toISOString(),
+        isFavorite: false,
       };
       
-      // Save to user's history
-      const response = await fetch(`/api/users/${user?.username}/history`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(identificationData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save to history');
+      // Try server-side first
+      try {
+        const response = await fetch(`/api/users/${user?.username}/history`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(identificationData),
+        });
+        
+        if (response.ok) {
+          const savedData = await response.json();
+          if (savedData && savedData.id) {
+            setSavedIdentificationId(savedData.id);
+          } else {
+            setSavedIdentificationId(identificationId);
+          }
+        } else {
+          throw new Error('Server response not OK');
+        }
+      } catch (serverError) {
+        console.error('Server error, using localStorage instead:', serverError);
+        
+        // Fallback to localStorage
+        try {
+          // Get existing history or initialize empty array
+          const historyKey = `plantHistory_${user?.username || 'guest'}`;
+          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          
+          // Add the new identification to history
+          existingHistory.unshift(identificationData);
+          
+          // Save back to localStorage
+          localStorage.setItem(historyKey, JSON.stringify(existingHistory));
+          
+          // Set the ID so UI shows favorites button
+          setSavedIdentificationId(identificationId);
+        } catch (localStorageError) {
+          console.error('localStorage error:', localStorageError);
+          throw new Error('Failed to save to localStorage');
+        }
       }
-      
-      const savedData = await response.json();
-      setSavedIdentificationId(savedData.id);
       
       // Show favorites button right after saving
       toast({
@@ -115,21 +146,48 @@ export default function ResultsSection({
     }
     
     try {
-      const response = await fetch(`/api/users/${user?.username}/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          identificationId: savedIdentificationId, 
-          isFavorite: !isFavorite 
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update favorite status');
+      // Try server-side first
+      try {
+        const response = await fetch(`/api/users/${user?.username}/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            identificationId: savedIdentificationId, 
+            isFavorite: !isFavorite 
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Server response not OK');
+        }
+      } catch (serverError) {
+        console.error('Server error, using localStorage instead:', serverError);
+        
+        // Fallback to localStorage for favorites
+        try {
+          // Get the history from localStorage
+          const historyKey = `plantHistory_${user?.username || 'guest'}`;
+          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          
+          // Find the item and update its favorite status
+          const updatedHistory = existingHistory.map((item: any) => {
+            if (item.id === savedIdentificationId) {
+              return {...item, isFavorite: !isFavorite};
+            }
+            return item;
+          });
+          
+          // Save back to localStorage
+          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+        } catch (localStorageError) {
+          console.error('localStorage error:', localStorageError);
+          throw new Error('Failed to update favorite status in localStorage');
+        }
       }
       
+      // Update the UI
       setIsFavorite(!isFavorite);
       
       toast({
@@ -274,16 +332,18 @@ export default function ResultsSection({
                         {results.scientificName}
                       </h4>
                       
-                      {savedIdentificationId && (
-                        <button 
-                          onClick={handleToggleFavorite} 
-                          className="ml-3 p-2 rounded-full hover:bg-yellow-50 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-200"
-                          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                        >
-                          <Star className={`h-6 w-6 ${isFavorite ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`} />
-                        </button>
-                      )}
+                      <button 
+                        onClick={savedIdentificationId ? handleToggleFavorite : handleSaveToHistory}
+                        className="ml-3 p-2 rounded-full hover:bg-yellow-50 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                        title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Star className={`h-6 w-6 ${
+                          isFavorite 
+                            ? 'fill-yellow-500 text-yellow-500' 
+                            : 'text-yellow-400 hover:text-yellow-500'
+                        }`} />
+                      </button>
                     </div>
                     <p className="text-base md:text-lg italic mb-2 text-slate-700">
                       {results.commonName}

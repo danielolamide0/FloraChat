@@ -26,9 +26,33 @@ export default function History() {
       
       try {
         setIsLoading(true);
-        // Get history from Firebase via our context functions
-        const historyData = await getHistory(user.username);
-        setIdentifications(historyData || []);
+        
+        try {
+          // Try Firebase first via context functions
+          const historyData = await getHistory(user.username);
+          if (historyData && historyData.length > 0) {
+            setIdentifications(historyData);
+            return;
+          }
+        } catch (firebaseError) {
+          console.error('Firebase error, falling back to localStorage:', firebaseError);
+        }
+        
+        // Fallback to localStorage
+        try {
+          const historyKey = `plantHistory_${user.username}`;
+          const localStorageData = localStorage.getItem(historyKey);
+          
+          if (localStorageData) {
+            const parsedData = JSON.parse(localStorageData);
+            setIdentifications(parsedData);
+          } else {
+            setIdentifications([]);
+          }
+        } catch (localStorageError) {
+          console.error('localStorage error:', localStorageError);
+          throw new Error('Failed to load from localStorage');
+        }
       } catch (error) {
         console.error('Error fetching history:', error);
         toast({
@@ -36,6 +60,7 @@ export default function History() {
           description: 'Failed to load identification history',
           variant: 'destructive',
         });
+        setIdentifications([]);
       } finally {
         setIsLoading(false);
       }
@@ -48,8 +73,32 @@ export default function History() {
     if (!user) return;
     
     try {
-      // Use Firebase-based function
-      await toggleFavorite(user.username, id, !currentState);
+      // Try Firebase-based function first
+      try {
+        await toggleFavorite(user.username, id, !currentState);
+      } catch (firebaseError) {
+        console.error('Firebase error, falling back to localStorage:', firebaseError);
+        
+        // Fallback to localStorage
+        try {
+          const historyKey = `plantHistory_${user.username}`;
+          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          
+          // Find the item and update its favorite status
+          const updatedHistory = existingHistory.map((item: any) => {
+            if (item.id === id) {
+              return {...item, isFavorite: !currentState};
+            }
+            return item;
+          });
+          
+          // Save back to localStorage
+          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+        } catch (localStorageError) {
+          console.error('localStorage error:', localStorageError);
+          throw new Error('Failed to update favorite status in localStorage');
+        }
+      }
       
       // Update the UI
       setIdentifications(prev => 
@@ -80,8 +129,27 @@ export default function History() {
     }
     
     try {
-      // Use Firebase-based function
-      await deleteIdentification(user.username, id);
+      // Try Firebase-based function first
+      try {
+        await deleteIdentification(user.username, id);
+      } catch (firebaseError) {
+        console.error('Firebase error, falling back to localStorage:', firebaseError);
+        
+        // Fallback to localStorage
+        try {
+          const historyKey = `plantHistory_${user.username}`;
+          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          
+          // Filter out the item to delete
+          const updatedHistory = existingHistory.filter((item: any) => item.id !== id);
+          
+          // Save back to localStorage
+          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+        } catch (localStorageError) {
+          console.error('localStorage error:', localStorageError);
+          throw new Error('Failed to delete from localStorage');
+        }
+      }
       
       // Update the UI
       setIdentifications(prev => prev.filter(item => item.id !== id));
