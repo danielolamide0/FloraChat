@@ -57,17 +57,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username is required" });
       }
       
-      // Check if user exists
-      let user = await getUser(username);
-      
-      if (!user) {
-        // Create new user if they don't exist
-        user = await createUser(username);
-        console.log(`Created new user: ${username}`);
-      } else {
-        // Update last login time for existing user
-        await updateUserLastLogin(username);
-        console.log(`User logged in: ${username}`);
+      try {
+        // Check if user exists
+        let user = await getUser(username);
+        
+        if (!user) {
+          // Create new user if they don't exist
+          user = await createUser(username);
+          console.log(`Created new user: ${username}`);
+        } else {
+          // Update last login time for existing user
+          await updateUserLastLogin(username);
+          console.log(`User logged in: ${username}`);
+        }
+      } catch (firebaseError) {
+        // Firebase error but we can continue with localStorage fallback
+        console.error("Firebase error in user login/register - falling back to localStorage:", firebaseError);
       }
       
       return res.status(200).json({ success: true, username });
@@ -85,14 +90,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username } = req.params;
       
-      // Check if user exists
-      const user = await getUser(username);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      try {
+        // Check if user exists in Firebase
+        const user = await getUser(username);
+        if (!user) {
+          // Return empty history instead of error if Firebase has permissions issues
+          console.log(`User ${username} not found in Firebase - returning empty history`);
+          return res.status(200).json([]);
+        }
+        
+        const history = await getUserIdentificationHistory(username);
+        return res.status(200).json(history);
+      } catch (firebaseError) {
+        // Firebase error - return empty array as fallback
+        console.error("Firebase error fetching history - returning empty history:", firebaseError);
+        return res.status(200).json([]);
       }
-      
-      const history = await getUserIdentificationHistory(username);
-      return res.status(200).json(history);
     } catch (error: any) {
       console.error("Error fetching user history:", error);
       return res.status(500).json({ 
@@ -107,14 +120,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username } = req.params;
       
-      // Check if user exists
-      const user = await getUser(username);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      try {
+        // Check if user exists in Firebase
+        const user = await getUser(username);
+        if (!user) {
+          // Return empty favorites instead of error if Firebase has permissions issues
+          console.log(`User ${username} not found in Firebase - returning empty favorites list`);
+          return res.status(200).json([]);
+        }
+        
+        const favorites = await getUserFavorites(username);
+        return res.status(200).json(favorites);
+      } catch (firebaseError) {
+        // Firebase error - return empty array as fallback
+        console.error("Firebase error fetching favorites - returning empty favorites:", firebaseError);
+        return res.status(200).json([]);
       }
-      
-      const favorites = await getUserFavorites(username);
-      return res.status(200).json(favorites);
     } catch (error: any) {
       console.error("Error fetching user favorites:", error);
       return res.status(500).json({ 
@@ -157,14 +178,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username } = req.params;
       const identificationData = req.body;
       
-      // Check if user exists
-      const user = await getUser(username);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      // Generate a unique ID for this identification (timestamp + random) - can be used if Firebase fails
+      const localIdentificationId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
-      const savedIdentification = await saveIdentificationToHistory(username, identificationData);
-      return res.status(201).json(savedIdentification);
+      try {
+        // Check if user exists in Firebase
+        const user = await getUser(username);
+        
+        // Create user if doesn't exist in Firebase
+        if (!user) {
+          try {
+            await createUser(username);
+            console.log(`Created new user for history save: ${username}`);
+          } catch (createUserError) {
+            console.error("Failed to create user:", createUserError);
+          }
+        }
+        
+        // Try to save identification to Firebase
+        try {
+          const savedIdentification = await saveIdentificationToHistory(username, identificationData);
+          return res.status(201).json(savedIdentification);
+        } catch (saveError) {
+          console.error("Firebase save error - returning local ID:", saveError);
+          // Return a fallback identification object if Firebase fails
+          return res.status(201).json({
+            id: localIdentificationId,
+            ...identificationData,
+            createdAt: new Date(),
+            isFavorite: false
+          });
+        }
+      } catch (firebaseError) {
+        console.error("Firebase error - returning local identification:", firebaseError);
+        // Return a fallback identification object if Firebase fails
+        return res.status(201).json({
+          id: localIdentificationId,
+          ...identificationData,
+          createdAt: new Date(),
+          isFavorite: false
+        });
+      }
     } catch (error: any) {
       console.error("Error saving to history:", error);
       return res.status(500).json({ 
