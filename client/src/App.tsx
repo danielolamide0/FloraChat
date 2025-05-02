@@ -13,7 +13,7 @@ function Router() {
     <div className="flex flex-col min-h-screen relative">
       {/* Mobile background with custom positioning */}
       <div className="absolute inset-0 -z-10 hidden md:block" style={{
-        backgroundImage: `linear-gradient(to bottom, rgba(46, 125, 50, 0.3), rgba(200, 230, 201, 0.4)), url(${bgImage})`,
+        backgroundImage: `url(${bgImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -22,7 +22,7 @@ function Router() {
       
       {/* Mobile background with centered on tree/leaves instead of feet */}
       <div className="absolute inset-0 -z-10 md:hidden" style={{
-        backgroundImage: `linear-gradient(to bottom, rgba(46, 125, 50, 0.4), rgba(200, 230, 201, 0.6)), url(${bgImage})`,
+        backgroundImage: `url(${bgImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center 0%', /* Focus on the upper portion with trees/leaves */
         backgroundRepeat: 'no-repeat',

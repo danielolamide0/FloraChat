@@ -204,22 +204,22 @@ export default function ResultsSection({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gradient-to-r from-green-50/90 to-white/90 p-3 rounded shadow-sm border border-green-200">
+                    <div className="bg-gradient-to-r from-green-50/70 to-white/70 p-3 rounded shadow-sm border border-green-200">
                       <p className="text-sm font-medium text-green-800">Family</p>
                       <p>{results.family}</p>
                     </div>
-                    <div className="bg-gradient-to-r from-green-50/90 to-white/90 p-3 rounded shadow-sm border border-green-200">
+                    <div className="bg-gradient-to-r from-green-50/70 to-white/70 p-3 rounded shadow-sm border border-green-200">
                       <p className="text-sm font-medium text-green-800">Genus</p>
                       <p>{results.genus}</p>
                     </div>
                     {results.distribution && (
-                      <div className="bg-gradient-to-r from-green-50/90 to-white/90 p-3 rounded shadow-sm border border-green-200">
+                      <div className="bg-gradient-to-r from-green-50/70 to-white/70 p-3 rounded shadow-sm border border-green-200">
                         <p className="text-sm font-medium text-green-800">Distribution</p>
                         <p>{results.distribution}</p>
                       </div>
                     )}
                     {results.habitat && (
-                      <div className="bg-gradient-to-r from-green-50/90 to-white/90 p-3 rounded shadow-sm border border-green-200">
+                      <div className="bg-gradient-to-r from-green-50/70 to-white/70 p-3 rounded shadow-sm border border-green-200">
                         <p className="text-sm font-medium text-green-800">Habitat</p>
                         <p>{results.habitat}</p>
                       </div>
