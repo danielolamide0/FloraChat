@@ -203,22 +203,22 @@ export default function ResultsSection({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                    <div className="bg-gradient-to-r from-green-50/90 to-white/90 backdrop-blur-sm p-3 rounded shadow-sm border border-green-200">
                       <p className="text-sm font-medium text-green-800">Family</p>
                       <p>{results.family}</p>
                     </div>
-                    <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                    <div className="bg-gradient-to-r from-green-50/90 to-white/90 backdrop-blur-sm p-3 rounded shadow-sm border border-green-200">
                       <p className="text-sm font-medium text-green-800">Genus</p>
                       <p>{results.genus}</p>
                     </div>
                     {results.distribution && (
-                      <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                      <div className="bg-gradient-to-r from-green-50/90 to-white/90 backdrop-blur-sm p-3 rounded shadow-sm border border-green-200">
                         <p className="text-sm font-medium text-green-800">Distribution</p>
                         <p>{results.distribution}</p>
                       </div>
                     )}
                     {results.habitat && (
-                      <div className="bg-green-50 p-3 rounded shadow-sm border border-green-100">
+                      <div className="bg-gradient-to-r from-green-50/90 to-white/90 backdrop-blur-sm p-3 rounded shadow-sm border border-green-200">
                         <p className="text-sm font-medium text-green-800">Habitat</p>
                         <p>{results.habitat}</p>
                       </div>
@@ -247,10 +247,10 @@ export default function ResultsSection({
               {/* Similar Species */}
               {results.similarPlants && results.similarPlants.length > 0 && (
                 <div className="mt-8">
-                  <h4 className="text-lg font-heading font-medium mb-4">Similar Species</h4>
+                  <h4 className="text-lg font-heading font-medium mb-4 text-green-700 pb-2 border-b border-green-100">Similar Species</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {results.similarPlants.map((plant, index) => (
-                      <div key={index} className="bg-white border border-neutral rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                      <div key={index} className="bg-white/80 backdrop-blur-sm border border-green-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                         {plant.imageUrl && (
                           <img src={plant.imageUrl} alt={plant.scientificName} className="w-full h-32 object-cover" />
                         )}
@@ -258,7 +258,7 @@ export default function ResultsSection({
                           <p className="font-medium text-sm">{plant.scientificName}</p>
                           <p className="text-xs text-neutral-dark">{plant.commonName}</p>
                           {plant.similarity && (
-                            <div className="mt-1 text-xs bg-secondary-light text-primary-dark px-2 py-0.5 rounded-full inline-block">
+                            <div className="mt-1 text-xs bg-gradient-to-r from-green-100 to-green-50 text-green-700 px-2 py-0.5 rounded-full inline-block shadow-sm">
                               {plant.similarity}% Similar
                             </div>
                           )}
