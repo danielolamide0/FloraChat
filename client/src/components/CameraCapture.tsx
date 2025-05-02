@@ -96,7 +96,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
     <div className="text-center">
       {isCameraAvailable ? (
         <>
-          <div className="relative max-w-md mx-auto mb-4 bg-neutral rounded-lg overflow-hidden border-2 border-green-100 shadow-sm" style={{ aspectRatio: "4/3" }}>
+          <div className="relative max-w-md mx-auto mb-4 bg-neutral rounded-lg overflow-hidden border-2 border-green-300 shadow-md backdrop-blur-md" style={{ aspectRatio: "4/3" }}>
             <video 
               ref={videoRef}
               autoPlay

@@ -164,7 +164,7 @@ export default function ResultsSection({
                     )}
                     
                     {results.referenceImageUrl && (
-                      <div className="mt-2 p-2 border border-green-100 rounded-lg bg-white/60 backdrop-blur-sm shadow-sm">
+                      <div className="mt-2 p-2 border border-green-300 rounded-lg bg-white/70 backdrop-blur-md shadow-sm">
                         <p className="text-xs text-green-700 mb-1 font-medium flex items-center">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
                             <path d="M12 2a9 9 0 0 0-9 9c0 3.18 1.65 5.98 4.15 7.58.37.23.63.59.76 1 .1.33.17.67.21 1 .08.62.29 1.16.56 1.42.14.14.33.18.54.11s.37-.24.45-.45c.37-.98.89-1.92 1.56-2.75.47-.6 1.11-1.1 1.84-1.44.73-.35 1.55-.52 2.37-.52.82 0 1.64.17 2.37.52.73.35 1.37.85 1.84 1.44.67.83 1.19 1.77 1.56 2.75.08.21.24.39.45.45s.4.03.54-.11c.27-.25.48-.8.56-1.42.04-.33.11-.67.21-1 .13-.41.39-.77.76-1C19.35 16.98 21 14.18 21 11a9 9 0 0 0-9-9z" />

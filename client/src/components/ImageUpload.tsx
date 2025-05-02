@@ -82,17 +82,17 @@ export default function ImageUpload({ onImageCapture }: ImageUploadProps) {
           </h3>
           
           <Tabs defaultValue="upload">
-            <TabsList className="mb-6 border-b border-green-100 w-full justify-start rounded-none bg-transparent">
+            <TabsList className="mb-6 border-b border-green-100 w-full justify-start rounded-none bg-transparent p-0">
               <TabsTrigger 
                 value="upload"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:text-green-700 transition-all"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-50 data-[state=active]:to-transparent data-[state=active]:text-green-700 px-4 py-2 transition-all"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Image
               </TabsTrigger>
               <TabsTrigger 
                 value="camera"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:text-green-700 transition-all"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-50 data-[state=active]:to-transparent data-[state=active]:text-green-700 px-4 py-2 transition-all"
               >
                 <Camera className="h-4 w-4 mr-2" />
                 Use Camera
@@ -101,7 +101,7 @@ export default function ImageUpload({ onImageCapture }: ImageUploadProps) {
             
             <TabsContent value="upload" className="slide-in mt-0">
               <div 
-                className={`upload-area rounded-lg p-8 text-center cursor-pointer bg-gradient-to-r from-green-50 to-white border-dashed border-2 border-green-200 ${isDragging ? 'dragover' : ''}`}
+                className={`upload-area rounded-lg p-8 text-center cursor-pointer bg-gradient-to-r from-green-50/90 to-white/90 backdrop-blur-sm border-dashed border-2 border-green-300 shadow-inner ${isDragging ? 'dragover' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
