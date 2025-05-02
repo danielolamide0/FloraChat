@@ -14,7 +14,7 @@ export default function LoginPage() {
   const { user, login, error, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [isLoginRoute] = useRoute('/login');
+  const [isLoginRoute] = useRoute('/auth');
 
   // If already logged in, redirect to home
   useEffect(() => {
