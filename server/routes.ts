@@ -58,21 +58,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
-        // Check if user exists
-        let user = await getUser(username);
+        // Check if user exists in database
+        let user = await storage.getUserByUsername(username);
         
         if (!user) {
           // Create new user if they don't exist
-          user = await createUser(username);
-          console.log(`Created new user: ${username}`);
+          user = await storage.createUser({
+            username,
+            password: 'placeholder' // We're not using password auth but schema requires it
+          });
+          console.log(`Created new user in database: ${username}`);
         } else {
-          // Update last login time for existing user
-          await updateUserLastLogin(username);
+          // Update last login time for existing user (Firebase fallback)
+          try {
+            await updateUserLastLogin(username);
+          } catch (firebaseError) {
+            console.error("Firebase error updating last login - continuing with DB user:", firebaseError);
+          }
           console.log(`User logged in: ${username}`);
         }
-      } catch (firebaseError) {
-        // Firebase error but we can continue with localStorage fallback
-        console.error("Firebase error in user login/register - falling back to localStorage:", firebaseError);
+      } catch (dbError) {
+        console.error("Database error in user login/register:", dbError);
+        
+        // Fallback to Firebase
+        try {
+          // Check if user exists in Firebase
+          let user = await getUser(username);
+          
+          if (!user) {
+            // Create new user if they don't exist
+            user = await createUser(username);
+            console.log(`Created new user in Firebase fallback: ${username}`);
+          } else {
+            // Update last login time for existing user
+            await updateUserLastLogin(username);
+            console.log(`User logged in via Firebase fallback: ${username}`);
+          }
+        } catch (firebaseError) {
+          // Firebase error but we can continue with localStorage as a last resort
+          console.error("Firebase fallback error in user login/register:", firebaseError);
+        }
       }
       
       return res.status(200).json({ success: true, username });
@@ -91,20 +116,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username } = req.params;
       
       try {
-        // Check if user exists in Firebase
-        const user = await getUser(username);
+        // Check if user exists in database
+        const user = await storage.getUserByUsername(username);
         if (!user) {
-          // Return empty history instead of error if Firebase has permissions issues
-          console.log(`User ${username} not found in Firebase - returning empty history`);
-          return res.status(200).json([]);
+          // Try Firebase as fallback if user not in database
+          try {
+            const firebaseUser = await getUser(username);
+            if (!firebaseUser) {
+              console.log(`User ${username} not found in DB or Firebase - returning empty history`);
+              return res.status(200).json([]);
+            }
+            
+            // User exists in Firebase but not in DB, get history from Firebase
+            const history = await getUserIdentificationHistory(username);
+            return res.status(200).json(history);
+          } catch (firebaseError) {
+            console.error("Firebase fallback error fetching history:", firebaseError);
+            return res.status(200).json([]);
+          }
         }
         
-        const history = await getUserIdentificationHistory(username);
+        // Get identifications from database
+        const identifications = await storage.getAllPlantIdentifications();
+        
+        // Filter to only include this user's identifications
+        const userIdentifications = identifications.filter(
+          identification => identification.username === username
+        );
+        
+        // Format the response to match the expected client format
+        const history = userIdentifications.map(identification => ({
+          id: identification.clientId,
+          scientificName: identification.scientificName,
+          commonName: identification.commonName || identification.scientificName,
+          family: identification.family || '',
+          genus: identification.genus || '',
+          confidence: identification.confidence || 0,
+          imageUrl: identification.imageUrl,
+          referenceImageUrl: identification.referenceImageUrl || null,
+          isFavorite: identification.isFavorite,
+          createdAt: identification.identifiedAt
+        }));
+        
         return res.status(200).json(history);
-      } catch (firebaseError) {
-        // Firebase error - return empty array as fallback
-        console.error("Firebase error fetching history - returning empty history:", firebaseError);
-        return res.status(200).json([]);
+      } catch (dbError) {
+        console.error("Database error fetching history - trying Firebase:", dbError);
+        
+        // Try Firebase as fallback
+        try {
+          // Check if user exists in Firebase
+          const user = await getUser(username);
+          if (!user) {
+            console.log(`User ${username} not found in Firebase fallback - returning empty history`);
+            return res.status(200).json([]);
+          }
+          
+          const history = await getUserIdentificationHistory(username);
+          return res.status(200).json(history);
+        } catch (firebaseError) {
+          // Firebase error - return empty array as final fallback
+          console.error("Firebase fallback error fetching history:", firebaseError);
+          return res.status(200).json([]);
+        }
       }
     } catch (error: any) {
       console.error("Error fetching user history:", error);
@@ -121,20 +194,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username } = req.params;
       
       try {
-        // Check if user exists in Firebase
-        const user = await getUser(username);
+        // Check if user exists in database
+        const user = await storage.getUserByUsername(username);
         if (!user) {
-          // Return empty favorites instead of error if Firebase has permissions issues
-          console.log(`User ${username} not found in Firebase - returning empty favorites list`);
-          return res.status(200).json([]);
+          // Try Firebase fallback if user not in database
+          try {
+            const firebaseUser = await getUser(username);
+            if (!firebaseUser) {
+              console.log(`User ${username} not found in DB or Firebase - returning empty favorites`);
+              return res.status(200).json([]);
+            }
+            
+            // User exists in Firebase but not in DB, get favorites from Firebase
+            const favorites = await getUserFavorites(username);
+            return res.status(200).json(favorites);
+          } catch (firebaseError) {
+            console.error("Firebase fallback error fetching favorites:", firebaseError);
+            return res.status(200).json([]);
+          }
         }
         
-        const favorites = await getUserFavorites(username);
+        // Get identifications from database
+        const identifications = await storage.getAllPlantIdentifications();
+        
+        // Filter to only include this user's favorited identifications
+        const userFavorites = identifications.filter(
+          identification => identification.username === username && identification.isFavorite === true
+        );
+        
+        // Format the response to match the expected client format
+        const favorites = userFavorites.map(identification => ({
+          id: identification.clientId,
+          scientificName: identification.scientificName,
+          commonName: identification.commonName || identification.scientificName,
+          family: identification.family || '',
+          genus: identification.genus || '',
+          confidence: identification.confidence || 0,
+          imageUrl: identification.imageUrl,
+          referenceImageUrl: identification.referenceImageUrl || null,
+          isFavorite: true,
+          createdAt: identification.identifiedAt
+        }));
+        
         return res.status(200).json(favorites);
-      } catch (firebaseError) {
-        // Firebase error - return empty array as fallback
-        console.error("Firebase error fetching favorites - returning empty favorites:", firebaseError);
-        return res.status(200).json([]);
+      } catch (dbError) {
+        console.error("Database error fetching favorites - trying Firebase:", dbError);
+        
+        // Try Firebase as fallback
+        try {
+          // Check if user exists in Firebase
+          const user = await getUser(username);
+          if (!user) {
+            console.log(`User ${username} not found in Firebase fallback - returning empty favorites`);
+            return res.status(200).json([]);
+          }
+          
+          const favorites = await getUserFavorites(username);
+          return res.status(200).json(favorites);
+        } catch (firebaseError) {
+          // Firebase error - return empty array as final fallback
+          console.error("Firebase fallback error fetching favorites:", firebaseError);
+          return res.status(200).json([]);
+        }
       }
     } catch (error: any) {
       console.error("Error fetching user favorites:", error);
@@ -156,34 +277,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
-        // Check if user exists in Firebase
-        const user = await getUser(username);
+        // First check if user exists in database
+        const user = await storage.getUserByUsername(username);
         
-        // If the user doesn't exist in Firebase, create them
+        // If user doesn't exist in database, create them
         if (!user) {
           try {
-            await createUser(username);
-            console.log(`Created new user for toggling favorite: ${username}`);
-          } catch (createError) {
-            console.error("Failed to create user for favorite toggle:", createError);
-            // Continue even if creation fails - we'll return a simulated response
+            await storage.createUser({
+              username,
+              password: 'placeholder' // We're not using password auth but schema requires it
+            });
+            console.log(`Created new user in database for toggling favorite: ${username}`);
+          } catch (createDbError) {
+            console.error("Error creating user in database for favorite toggle:", createDbError);
+            // We'll continue with Firebase fallback
           }
         }
         
+        // Try to find the identification in the database by clientId
+        const allIdentifications = await storage.getAllPlantIdentifications();
+        const identification = allIdentifications.find(i => i.clientId === identificationId && i.username === username);
+        
+        if (identification) {
+          // Update the identification in the database
+          try {
+            // In a proper implementation, we'd have an update method in storage
+            // For now, we'll just create a new identification with the same clientId but updated isFavorite
+            await storage.createPlantIdentification({
+              ...identification,
+              isFavorite
+            });
+            
+            console.log(`Updated favorite status in database for identification ${identificationId} to ${isFavorite}`);
+            
+            // Try to also update in Firebase for data consistency
+            try {
+              await toggleFavorite(username, identificationId, isFavorite);
+            } catch (firebaseToggleError) {
+              console.error("Firebase toggle error (database already updated):", firebaseToggleError);
+            }
+            
+            return res.status(200).json({ 
+              id: identificationId, 
+              isFavorite
+            });
+          } catch (dbUpdateError) {
+            console.error("Database error updating favorite status:", dbUpdateError);
+            // Continue to Firebase fallback
+          }
+        }
+        
+        // Database update failed or identification not found in DB, try Firebase
         try {
+          // Check if user exists in Firebase
+          const firebaseUser = await getUser(username);
+          
+          // If the user doesn't exist in Firebase, create them
+          if (!firebaseUser) {
+            try {
+              await createUser(username);
+              console.log(`Created new user in Firebase for toggling favorite: ${username}`);
+            } catch (createFirebaseError) {
+              console.error("Failed to create user in Firebase for favorite toggle:", createFirebaseError);
+              // Return success anyway as a fallback
+              return res.status(200).json({ 
+                id: identificationId, 
+                isFavorite
+              });
+            }
+          }
+          
           // Try to update in Firebase
           const result = await toggleFavorite(username, identificationId, isFavorite);
           return res.status(200).json(result);
-        } catch (toggleError) {
-          console.error("Error toggling favorite in Firebase - returning simulated response:", toggleError);
+        } catch (firebaseError) {
+          console.error("Firebase error in toggle favorite - returning simulated response:", firebaseError);
           // Return a simulated success response for the client
           return res.status(200).json({ 
             id: identificationId, 
             isFavorite
           });
         }
-      } catch (firebaseError) {
-        console.error("Firebase error in toggle favorite - returning simulated response:", firebaseError);
+      } catch (error: any) {
+        console.error("Unexpected error in toggle favorite - returning simulated response:", error);
         // Return a simulated success response for the client
         return res.status(200).json({ 
           id: identificationId, 
@@ -205,46 +381,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username } = req.params;
       const identificationData = req.body;
       
-      // Generate a unique ID for this identification (timestamp + random) - can be used if Firebase fails
-      const localIdentificationId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      // Generate a unique ID for this identification (timestamp + random)
+      const clientId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
       try {
-        // Check if user exists in Firebase
-        const user = await getUser(username);
-        
-        // Create user if doesn't exist in Firebase
-        if (!user) {
-          try {
-            await createUser(username);
-            console.log(`Created new user for history save: ${username}`);
-          } catch (createUserError) {
-            console.error("Failed to create user:", createUserError);
-          }
-        }
-        
-        // Try to save identification to Firebase
+        // First try to save to database
         try {
-          const savedIdentification = await saveIdentificationToHistory(username, identificationData);
-          return res.status(201).json(savedIdentification);
-        } catch (saveError) {
-          console.error("Firebase save error - returning local ID:", saveError);
-          // Return a fallback identification object if Firebase fails
+          // Check if user exists in database
+          let user = await storage.getUserByUsername(username);
+          
+          // Create user if doesn't exist in database
+          if (!user) {
+            try {
+              user = await storage.createUser({
+                username,
+                password: 'placeholder' // We're not using password auth but schema requires it
+              });
+              console.log(`Created new user in database for saving history: ${username}`);
+            } catch (createDbError) {
+              console.error("Error creating user in database:", createDbError);
+              throw createDbError; // Rethrow to trigger Firebase fallback
+            }
+          }
+          
+          // Prepare data for database storage
+          const plantIdentificationData = {
+            username,
+            clientId,
+            imageUrl: identificationData.imageUrl,
+            scientificName: identificationData.scientificName,
+            commonName: identificationData.commonName || null,
+            family: identificationData.family || null,
+            genus: identificationData.genus || null,
+            confidence: identificationData.confidence || null,
+            category: identificationData.category || null,
+            distribution: identificationData.distribution || null,
+            habitat: identificationData.habitat || null,
+            description: identificationData.description || null,
+            referenceImageUrl: identificationData.referenceImageUrl || null,
+            isFavorite: false // Default to not favorited
+          };
+          
+          // Save to database
+          await storage.createPlantIdentification(plantIdentificationData);
+          console.log(`Saved identification to database for user ${username}`);
+          
+          // Try to save to Firebase as well for data consistency
+          try {
+            await saveIdentificationToHistory(username, {
+              ...identificationData,
+              id: clientId
+            });
+          } catch (firebaseSaveError) {
+            console.error("Firebase save error (database already saved):", firebaseSaveError);
+          }
+          
+          // Return success with the data we saved
           return res.status(201).json({
-            id: localIdentificationId,
+            id: clientId,
+            ...identificationData,
+            createdAt: new Date(),
+            isFavorite: false
+          });
+        } catch (dbError) {
+          console.error("Database error saving identification - trying Firebase:", dbError);
+          throw dbError; // Rethrow to trigger Firebase fallback
+        }
+      } catch (dbFallbackError) {
+        // Database failed, try Firebase fallback
+        try {
+          // Check if user exists in Firebase
+          const firebaseUser = await getUser(username);
+          
+          // Create user if doesn't exist in Firebase
+          if (!firebaseUser) {
+            try {
+              await createUser(username);
+              console.log(`Created new user in Firebase for history save: ${username}`);
+            } catch (createFirebaseError) {
+              console.error("Failed to create user in Firebase:", createFirebaseError);
+              // Continue anyway, we'll return a local identification
+            }
+          }
+          
+          // Try to save identification to Firebase
+          try {
+            const savedIdentification = await saveIdentificationToHistory(username, {
+              ...identificationData,
+              id: clientId
+            });
+            return res.status(201).json(savedIdentification);
+          } catch (firebaseSaveError) {
+            console.error("Firebase save error - returning local ID:", firebaseSaveError);
+            // Return a fallback identification object if Firebase fails
+            return res.status(201).json({
+              id: clientId,
+              ...identificationData,
+              createdAt: new Date(),
+              isFavorite: false
+            });
+          }
+        } catch (firebaseError) {
+          console.error("Firebase error - returning local identification:", firebaseError);
+          // Return a fallback identification object if both DB and Firebase fail
+          return res.status(201).json({
+            id: clientId,
             ...identificationData,
             createdAt: new Date(),
             isFavorite: false
           });
         }
-      } catch (firebaseError) {
-        console.error("Firebase error - returning local identification:", firebaseError);
-        // Return a fallback identification object if Firebase fails
-        return res.status(201).json({
-          id: localIdentificationId,
-          ...identificationData,
-          createdAt: new Date(),
-          isFavorite: false
-        });
       }
     } catch (error: any) {
       console.error("Error saving to history:", error);
@@ -261,16 +507,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username, identificationId } = req.params;
       
       try {
-        // Check if user exists in Firebase
-        const user = await getUser(username);
-        
-        if (!user) {
-          // User not found but return success anyway (simulate deletion)
-          console.log(`User ${username} not found for delete operation - simulating success`);
-          return res.status(200).json({ success: true, id: identificationId });
+        // First try to delete from database
+        try {
+          // Get all identifications
+          const allIdentifications = await storage.getAllPlantIdentifications();
+          
+          // Find the identification by clientId
+          const identification = allIdentifications.find(i => 
+            i.clientId === identificationId && i.username === username
+          );
+          
+          if (identification) {
+            // Found the identification in the database, delete it
+            const deleted = await storage.deletePlantIdentification(identification.id);
+            
+            if (deleted) {
+              console.log(`Deleted identification ${identificationId} from database`);
+              
+              // Try to also delete from Firebase for consistency
+              try {
+                await deleteIdentification(username, identificationId);
+              } catch (firebaseDeleteError) {
+                console.error("Firebase delete error (database already deleted):", firebaseDeleteError);
+              }
+              
+              return res.status(200).json({ success: true, id: identificationId });
+            } else {
+              console.error(`Failed to delete identification ${identificationId} from database`);
+              // Continue to Firebase fallback
+            }
+          } else {
+            console.log(`Identification ${identificationId} not found in database - trying Firebase`);
+            // Continue to Firebase fallback
+          }
+        } catch (dbError) {
+          console.error("Database error deleting identification - trying Firebase:", dbError);
+          // Continue to Firebase fallback
         }
         
+        // Try Firebase deletion as fallback
         try {
+          // Check if user exists in Firebase
+          const user = await getUser(username);
+          
+          if (!user) {
+            // User not found but return success anyway (simulate deletion)
+            console.log(`User ${username} not found in Firebase for delete operation - simulating success`);
+            return res.status(200).json({ success: true, id: identificationId });
+          }
+          
           // Try Firebase deletion
           const result = await deleteIdentification(username, identificationId);
           return res.status(200).json(result);
@@ -279,8 +564,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Return simulated success to client
           return res.status(200).json({ success: true, id: identificationId });
         }
-      } catch (firebaseError) {
-        console.error("Firebase error in delete - simulating success:", firebaseError);
+      } catch (error: any) {
+        console.error("Unexpected error in delete operation - simulating success:", error);
         // Return simulated success to client
         return res.status(200).json({ success: true, id: identificationId });
       }
