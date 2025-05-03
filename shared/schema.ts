@@ -84,23 +84,23 @@ export type InsertPlantImage = z.infer<typeof insertPlantImageSchema>;
 // Plant identification result schema for API
 export const plantIdentificationResultSchema = z.object({
   scientificName: z.string(),
-  commonName: z.string().optional(),
-  family: z.string().optional(),
-  genus: z.string().optional(),
-  confidence: z.number().optional(),
-  category: z.string().optional(),
-  distribution: z.string().optional(),
-  habitat: z.string().optional(),
-  description: z.string().optional(),
-  referenceImageUrl: z.string().optional(),
+  commonName: z.string().nullish(),
+  family: z.string().nullish(),
+  genus: z.string().nullish(),
+  confidence: z.number().nullish(),
+  category: z.string().nullish(),
+  distribution: z.string().nullish(),
+  habitat: z.string().nullish(),
+  description: z.string().nullish(),
+  referenceImageUrl: z.string().nullish(),
   similarPlants: z.array(
     z.object({
       scientificName: z.string(),
-      commonName: z.string().optional(),
-      similarity: z.number().optional(),
-      imageUrl: z.string().optional(),
+      commonName: z.string().nullish(),
+      similarity: z.number().nullish(),
+      imageUrl: z.string().nullish(),
     })
-  ).optional(),
+  ).nullish(),
 });
 
 export type PlantIdentificationResult = z.infer<typeof plantIdentificationResultSchema>;

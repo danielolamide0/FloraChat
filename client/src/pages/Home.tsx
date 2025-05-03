@@ -10,7 +10,7 @@ export default function Home() {
   const [showResults, setShowResults] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | undefined>(undefined);
   const [identificationResults, setIdentificationResults] = useState<any | null>(null);
 
   const handleImageUpload = async (imageFile: File) => {

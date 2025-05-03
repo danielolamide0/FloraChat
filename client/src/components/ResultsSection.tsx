@@ -10,7 +10,7 @@ import { useLocation } from "wouter";
 interface ResultsSectionProps {
   isLoading: boolean;
   hasError: boolean;
-  uploadedImage: string | null;
+  uploadedImage: string | undefined;
   results: PlantIdentificationResult | null;
   onNewIdentification: () => void;
 }
@@ -91,7 +91,7 @@ export default function ResultsSection({
           // Save identification data even if image persistence fails
           console.log("Starting to persist uploaded image...");
           let persistedMainImage = uploadedImage;
-          let persistedReferenceImage = results.referenceImageUrl;
+          let persistedReferenceImage = results.referenceImageUrl || undefined;
           
           try {
             persistedMainImage = await persistImage(uploadedImage);
