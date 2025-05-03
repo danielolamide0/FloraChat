@@ -29,6 +29,44 @@ export default function ResultsSection({
   const [isFavorite, setIsFavorite] = useState(false);
   const [savedIdentificationId, setSavedIdentificationId] = useState<string | null>(null);
 
+  // Helper function to save identification to localStorage
+  const saveToLocalStorage = (
+    identificationId: string, 
+    data: any, 
+    username: string | undefined
+  ) => {
+    try {
+      console.log("Using localStorage for history...");
+      const localHistoryKey = `plantHistory_${username || 'guest'}`;
+      const existingHistoryJson = localStorage.getItem(localHistoryKey) || '[]';
+      
+      const existingHistory = JSON.parse(existingHistoryJson);
+      console.log("Parsed existing history, items:", existingHistory.length);
+      
+      existingHistory.unshift(data);
+      console.log("Added new identification to history array");
+      
+      const newHistoryJson = JSON.stringify(existingHistory);
+      localStorage.setItem(localHistoryKey, newHistoryJson);
+      console.log("Successfully saved to localStorage");
+    } catch (jsonError) {
+      console.error("JSON processing error:", jsonError);
+      // Last resort fallback: simple direct save
+      if (results) {
+        const fallbackData = {
+          id: identificationId,
+          scientificName: results.scientificName || 'Unknown',
+          commonName: results.commonName || 'Unknown plant',
+          imageUrl: uploadedImage, // Use original
+          isFavorite: false,
+        };
+        const localHistoryKey = `plantHistory_${username || 'guest'}`;
+        localStorage.setItem(localHistoryKey, JSON.stringify([fallbackData]));
+        console.log("Used fallback simple save mechanism");
+      }
+    }
+  };
+
   // Auto-save to history when identification results are available
   useEffect(() => {
     if (results && !savedIdentificationId) {
@@ -192,42 +230,11 @@ export default function ResultsSection({
               console.error("Error starting server save process:", e);
               
               // Fallback to localStorage if server save setup fails
-              saveToLocalStorageFallback();
+              saveToLocalStorage(identificationId, identificationData, user.username);
             }
           } else {
             // Not authenticated - use localStorage for guest
-            saveToLocalStorageFallback();
-          }
-          
-          // Function for localStorage fallback
-          function saveToLocalStorageFallback() {
-            try {
-              console.log("Using localStorage fallback for history...");
-              const historyKey = `plantHistory_${user?.username || 'guest'}`;
-              const existingHistoryJson = localStorage.getItem(historyKey) || '[]';
-              
-              const existingHistory = JSON.parse(existingHistoryJson);
-              console.log("Parsed existing history, items:", existingHistory.length);
-              
-              existingHistory.unshift(identificationData);
-              console.log("Added new identification to history array");
-              
-              const newHistoryJson = JSON.stringify(existingHistory);
-              localStorage.setItem(historyKey, newHistoryJson);
-              console.log("Successfully saved to localStorage");
-            } catch (jsonError) {
-              console.error("JSON processing error:", jsonError);
-              // Last resort fallback: simple direct save
-              const fallbackData = {
-                id: identificationId,
-                scientificName: results.scientificName,
-                commonName: results.commonName,
-                imageUrl: uploadedImage, // Use original
-                isFavorite: false,
-              };
-              localStorage.setItem(historyKey, JSON.stringify([fallbackData]));
-              console.log("Used fallback simple save mechanism");
-            }
+            saveToLocalStorage(identificationId, identificationData, 'guest');
           }
         } catch (error) {
           console.error('Auto-save error:', error);
