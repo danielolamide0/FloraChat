@@ -25,10 +25,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Export the history management functions using Firebase
+// Local storage functions - primary data source
 export async function saveToHistory(username: string, data: any) {
   try {
-    return await saveIdentificationToHistory(username, data);
+    // Try Firebase as a bonus
+    try {
+      await saveIdentificationToHistory(username, data);
+    } catch (error) {
+      console.error('Firebase save error (continuing with localStorage):', error);
+    }
+    
+    // Primary storage in localStorage
+    const historyKey = `plantHistory_${username}`;
+    const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    
+    // Add data to the beginning of the array (newest first)
+    existingHistory.unshift(data);
+    
+    // Save back to localStorage
+    localStorage.setItem(historyKey, JSON.stringify(existingHistory));
+    
+    return data;
   } catch (error) {
     console.error('Error saving identification to history:', error);
     throw error;
@@ -37,7 +54,27 @@ export async function saveToHistory(username: string, data: any) {
 
 export async function getHistory(username: string) {
   try {
-    return await getUserIdentificationHistory(username);
+    // Primary storage is localStorage
+    const historyKey = `plantHistory_${username}`;
+    const localData = localStorage.getItem(historyKey);
+    
+    if (localData) {
+      return JSON.parse(localData);
+    }
+    
+    // Try Firebase as fallback only if localStorage is empty
+    try {
+      const firebaseData = await getUserIdentificationHistory(username);
+      if (firebaseData && firebaseData.length > 0) {
+        // Save to localStorage for next time
+        localStorage.setItem(historyKey, JSON.stringify(firebaseData));
+        return firebaseData;
+      }
+    } catch (error) {
+      console.error('Firebase history fetch error (continuing with empty array):', error);
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error getting user history:', error);
     return [];
@@ -46,7 +83,26 @@ export async function getHistory(username: string) {
 
 export async function getFavorites(username: string) {
   try {
-    return await getUserFavorites(username);
+    // Get from localStorage
+    const historyKey = `plantHistory_${username}`;
+    const localData = localStorage.getItem(historyKey);
+    
+    if (localData) {
+      const allItems = JSON.parse(localData);
+      return allItems.filter((item: any) => item.isFavorite === true);
+    }
+    
+    // Try Firebase as fallback only if localStorage is empty
+    try {
+      const firebaseData = await getUserFavorites(username);
+      if (firebaseData && firebaseData.length > 0) {
+        return firebaseData;
+      }
+    } catch (error) {
+      console.error('Firebase favorites fetch error (continuing with empty array):', error);
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error getting user favorites:', error);
     return [];
@@ -55,7 +111,29 @@ export async function getFavorites(username: string) {
 
 export async function toggleFavorite(username: string, identificationId: string, isFavorite: boolean) {
   try {
-    return await toggleFavoriteFirebase(username, identificationId, isFavorite);
+    // Try Firebase as a bonus
+    try {
+      await toggleFavoriteFirebase(username, identificationId, isFavorite);
+    } catch (error) {
+      console.error('Firebase toggle favorite error (continuing with localStorage):', error);
+    }
+    
+    // Primary storage in localStorage
+    const historyKey = `plantHistory_${username}`;
+    const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    
+    // Update favorite status
+    const updatedHistory = existingHistory.map((item: any) => {
+      if (item.id === identificationId) {
+        return { ...item, isFavorite };
+      }
+      return item;
+    });
+    
+    // Save back to localStorage
+    localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+    
+    return { id: identificationId, isFavorite };
   } catch (error) {
     console.error('Error toggling favorite status:', error);
     throw error;
@@ -64,7 +142,24 @@ export async function toggleFavorite(username: string, identificationId: string,
 
 export async function deleteIdentification(username: string, identificationId: string) {
   try {
-    return await deleteIdentificationFirebase(username, identificationId);
+    // Try Firebase as a bonus
+    try {
+      await deleteIdentificationFirebase(username, identificationId);
+    } catch (error) {
+      console.error('Firebase delete error (continuing with localStorage):', error);
+    }
+    
+    // Primary storage in localStorage
+    const historyKey = `plantHistory_${username}`;
+    const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    
+    // Filter out the item to delete
+    const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
+    
+    // Save back to localStorage
+    localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+    
+    return { id: identificationId, deleted: true };
   } catch (error) {
     console.error('Error deleting identification:', error);
     throw error;
