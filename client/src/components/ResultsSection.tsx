@@ -126,67 +126,107 @@ export default function ResultsSection({
             isFavorite: false,
           };
           
-          // Save to history
-          console.log("Saving to localStorage history...");
-          const historyKey = `plantHistory_${user?.username || 'guest'}`;
-          const existingHistoryJson = localStorage.getItem(historyKey) || '[]';
-          console.log("Existing history JSON length:", existingHistoryJson.length);
+          // Save to history - prioritize server/database first
+          console.log("Starting to save identification...");
           
-          try {
-            const existingHistory = JSON.parse(existingHistoryJson);
-            console.log("Parsed existing history, items:", existingHistory.length);
-            
-            existingHistory.unshift(identificationData);
-            console.log("Added new identification to history array");
-            
-            const newHistoryJson = JSON.stringify(existingHistory);
-            console.log("New history JSON length:", newHistoryJson.length);
-            
-            localStorage.setItem(historyKey, newHistoryJson);
-            console.log("Successfully saved to localStorage");
-            
-            // Set the ID for favorite functionality
-            setSavedIdentificationId(identificationId);
-            console.log("Updated savedIdentificationId state:", identificationId);
-            
-            // This step is optional but helps with error detection
-            const verifyHistory = localStorage.getItem(historyKey);
-            console.log("Verification: history items count:", 
-              verifyHistory ? JSON.parse(verifyHistory).length : 0);
-            
-          } catch (jsonError) {
-            console.error("JSON processing error:", jsonError);
-            // Last resort fallback: simple direct save
-            const fallbackData = {
-              id: identificationId,
-              scientificName: results.scientificName,
-              commonName: results.commonName,
-              imageUrl: uploadedImage, // Use original
-              isFavorite: false,
-            };
-            localStorage.setItem(historyKey, JSON.stringify([fallbackData]));
-            setSavedIdentificationId(identificationId);
-            console.log("Used fallback simple save mechanism");
-          }
+          // Set the ID for favorite functionality immediately 
+          setSavedIdentificationId(identificationId);
+          console.log("Updated savedIdentificationId state:", identificationId);
           
-          // Try server save in background if authenticated
+          // Primary - try server/database save if authenticated
           if (user?.username) {
             try {
-              console.log("Attempting server-side history save...");
-              fetch(`/api/users/${user.username}/history`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(identificationData),
-              })
-              .then(response => {
-                console.log("Server history save response:", response.status);
-              })
-              .catch(err => console.log('Background server save error (non-critical):', err));
+              console.log("Attempting primary server-side history save...");
+              
+              // Use async/await pattern for cleaner error handling
+              const serverSave = async () => {
+                try {
+                  const response = await fetch(`/api/users/${user.username}/history`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(identificationData),
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error(`Server returned: ${response.status}`);
+                  }
+                  
+                  console.log("Server history save successful:", response.status);
+                  return true;
+                } catch (serverError) {
+                  console.error("Server history save failed:", serverError);
+                  return false;
+                }
+              };
+              
+              // Execute server save and continue with localStorage backup
+              serverSave().then(serverSaveSuccessful => {
+                // Always keep a localStorage copy as cache regardless of server result
+                try {
+                  console.log("Updating localStorage cache...");
+                  const historyKey = `plantHistory_${user?.username || 'guest'}`;
+                  const existingHistoryJson = localStorage.getItem(historyKey) || '[]';
+                  
+                  const existingHistory = JSON.parse(existingHistoryJson);
+                  console.log("Parsed existing localStorage history, items:", existingHistory.length);
+                  
+                  // Avoid duplicates by removing any existing entry with same ID
+                  const filteredHistory = existingHistory.filter(
+                    (item: any) => item.id !== identificationId
+                  );
+                  
+                  // Add new item at beginning
+                  filteredHistory.unshift(identificationData);
+                  console.log("Added new identification to localStorage cache");
+                  
+                  const newHistoryJson = JSON.stringify(filteredHistory);
+                  localStorage.setItem(historyKey, newHistoryJson);
+                  console.log("Successfully updated localStorage cache");
+                } catch (localStorageError) {
+                  console.error("Error updating localStorage cache:", localStorageError);
+                }
+              });
             } catch (e) {
-              // Ignore server errors for background save
-              console.log("Error in server-side history save attempt:", e);
+              console.error("Error starting server save process:", e);
+              
+              // Fallback to localStorage if server save setup fails
+              saveToLocalStorageFallback();
+            }
+          } else {
+            // Not authenticated - use localStorage for guest
+            saveToLocalStorageFallback();
+          }
+          
+          // Function for localStorage fallback
+          function saveToLocalStorageFallback() {
+            try {
+              console.log("Using localStorage fallback for history...");
+              const historyKey = `plantHistory_${user?.username || 'guest'}`;
+              const existingHistoryJson = localStorage.getItem(historyKey) || '[]';
+              
+              const existingHistory = JSON.parse(existingHistoryJson);
+              console.log("Parsed existing history, items:", existingHistory.length);
+              
+              existingHistory.unshift(identificationData);
+              console.log("Added new identification to history array");
+              
+              const newHistoryJson = JSON.stringify(existingHistory);
+              localStorage.setItem(historyKey, newHistoryJson);
+              console.log("Successfully saved to localStorage");
+            } catch (jsonError) {
+              console.error("JSON processing error:", jsonError);
+              // Last resort fallback: simple direct save
+              const fallbackData = {
+                id: identificationId,
+                scientificName: results.scientificName,
+                commonName: results.commonName,
+                imageUrl: uploadedImage, // Use original
+                isFavorite: false,
+              };
+              localStorage.setItem(historyKey, JSON.stringify([fallbackData]));
+              console.log("Used fallback simple save mechanism");
             }
           }
         } catch (error) {
@@ -229,26 +269,34 @@ export default function ResultsSection({
       const newFavoriteState = !isFavorite;
       setIsFavorite(newFavoriteState);
       
-      // Use the same toggleFavorite function from AuthContext
+      console.log(`Toggling favorite status to ${newFavoriteState} for ID: ${savedIdentificationId}`);
+      
+      // Use the toggleFavorite function from AuthContext which now prioritizes database
       try {
-        await toggleFavorite(user?.username || 'guest', savedIdentificationId, newFavoriteState);
+        if (user?.username) {
+          // The updated toggleFavorite now prioritizes database over localStorage
+          await toggleFavorite(user.username, savedIdentificationId, newFavoriteState);
+        } else {
+          // Handle guest mode - localStorage only
+          const historyKey = 'plantHistory_guest';
+          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          
+          // Find the item and update its favorite status
+          const updatedHistory = existingHistory.map((item: any) => {
+            if (item.id === savedIdentificationId) {
+              return {...item, isFavorite: newFavoriteState};
+            }
+            return item;
+          });
+          
+          // Save back to localStorage
+          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+          console.log("Updated favorite status in localStorage for guest");
+        }
       } catch (error) {
-        // In case of error from the context function, implement a direct fallback
-        console.error('AuthContext error, using direct localStorage fallback:', error);
-        
-        const historyKey = `plantHistory_${user?.username || 'guest'}`;
-        const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-        
-        // Find the item and update its favorite status
-        const updatedHistory = existingHistory.map((item: any) => {
-          if (item.id === savedIdentificationId) {
-            return {...item, isFavorite: newFavoriteState};
-          }
-          return item;
-        });
-        
-        // Save back to localStorage
-        localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+        console.error('Error using toggleFavorite from AuthContext:', error);
+        // Only show error toast if we're not able to update even the localStorage
+        throw error;
       }
       
       toast({
