@@ -113,45 +113,26 @@ export default function ResultsSection({
       const newFavoriteState = !isFavorite;
       setIsFavorite(newFavoriteState);
       
-      // Try server-side first
+      // Use the same toggleFavorite function from AuthContext
       try {
-        const response = await fetch(`/api/users/${user?.username}/favorites`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            identificationId: savedIdentificationId, 
-            isFavorite: newFavoriteState 
-          }),
+        await toggleFavorite(user?.username || 'guest', savedIdentificationId, newFavoriteState);
+      } catch (error) {
+        // In case of error from the context function, implement a direct fallback
+        console.error('AuthContext error, using direct localStorage fallback:', error);
+        
+        const historyKey = `plantHistory_${user?.username || 'guest'}`;
+        const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+        
+        // Find the item and update its favorite status
+        const updatedHistory = existingHistory.map((item: any) => {
+          if (item.id === savedIdentificationId) {
+            return {...item, isFavorite: newFavoriteState};
+          }
+          return item;
         });
         
-        if (!response.ok) {
-          throw new Error('Server response not OK');
-        }
-      } catch (serverError) {
-        console.error('Server error, using localStorage instead:', serverError);
-        
-        // Fallback to localStorage for favorites
-        try {
-          // Get the history from localStorage
-          const historyKey = `plantHistory_${user?.username || 'guest'}`;
-          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-          
-          // Find the item and update its favorite status
-          const updatedHistory = existingHistory.map((item: any) => {
-            if (item.id === savedIdentificationId) {
-              return {...item, isFavorite: newFavoriteState};
-            }
-            return item;
-          });
-          
-          // Save back to localStorage
-          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-        } catch (localStorageError) {
-          console.error('localStorage error:', localStorageError);
-          throw new Error('Failed to update favorite status in localStorage');
-        }
+        // Save back to localStorage
+        localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
       }
       
       toast({
