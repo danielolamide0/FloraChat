@@ -32,29 +32,54 @@ export default function ResultsSection({
   // Auto-save to history when identification results are available
   useEffect(() => {
     if (results && !savedIdentificationId) {
+      console.log("ResultsSection: Starting auto-save process", { results, uploadedImage });
+      
       // Auto-save to history silently
       const saveToHistoryAutomatically = async () => {
         try {
           // Create data with timestamp ID
           const identificationId = `id-${Date.now()}`;
+          console.log("Creating new identification with ID:", identificationId);
           
           // Function to convert an image URL to a base64 data URL if needed
           const persistImage = async (imageUrl: string | null): Promise<string | null> => {
-            if (!imageUrl) return null;
+            if (!imageUrl) {
+              console.log("No image URL provided to persistImage");
+              return null;
+            }
+            
+            console.log("Starting image persistence for URL:", imageUrl.substring(0, 50) + "...");
             
             // If it's already a data URL, return it as is
             if (imageUrl.startsWith('data:')) {
+              console.log("Image is already a data URL, returning as is");
               return imageUrl;
             }
             
             // Otherwise, fetch and convert to data URL
             try {
+              console.log("Fetching image from URL...");
               const response = await fetch(imageUrl);
+              if (!response.ok) {
+                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+              }
+              
+              console.log("Converting fetched image to blob...");
               const blob = await response.blob();
+              console.log("Image blob created, size:", blob.size);
               
               return new Promise((resolve) => {
+                console.log("Creating FileReader for blob...");
                 const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
+                reader.onloadend = () => {
+                  console.log("FileReader completed, data URL length:", 
+                    reader.result ? (reader.result as string).length : 0);
+                  resolve(reader.result as string);
+                };
+                reader.onerror = () => {
+                  console.error("FileReader error:", reader.error);
+                  resolve(imageUrl); // Fallback to original URL on error
+                };
                 reader.readAsDataURL(blob);
               });
             } catch (err) {
@@ -63,10 +88,24 @@ export default function ResultsSection({
             }
           };
           
-          // Persist images to localStorage as base64
-          const persistedMainImage = await persistImage(uploadedImage);
-          const persistedReferenceImage = await persistImage(results.referenceImageUrl);
+          // Save identification data even if image persistence fails
+          console.log("Starting to persist uploaded image...");
+          let persistedMainImage = uploadedImage;
+          let persistedReferenceImage = results.referenceImageUrl;
           
+          try {
+            persistedMainImage = await persistImage(uploadedImage);
+          } catch (imageErr) {
+            console.error("Failed to persist main image, using original:", imageErr);
+          }
+          
+          try {
+            persistedReferenceImage = await persistImage(results.referenceImageUrl);
+          } catch (refImageErr) {
+            console.error("Failed to persist reference image, using original:", refImageErr);
+          }
+          
+          console.log("Images persisted, creating identification data object");
           const identificationData = {
             id: identificationId,
             scientificName: results.scientificName,
@@ -86,31 +125,76 @@ export default function ResultsSection({
           };
           
           // Save to history
+          console.log("Saving to localStorage history...");
           const historyKey = `plantHistory_${user?.username || 'guest'}`;
-          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-          existingHistory.unshift(identificationData);
-          localStorage.setItem(historyKey, JSON.stringify(existingHistory));
+          const existingHistoryJson = localStorage.getItem(historyKey) || '[]';
+          console.log("Existing history JSON length:", existingHistoryJson.length);
           
-          // Set the ID for favorite functionality
-          setSavedIdentificationId(identificationId);
+          try {
+            const existingHistory = JSON.parse(existingHistoryJson);
+            console.log("Parsed existing history, items:", existingHistory.length);
+            
+            existingHistory.unshift(identificationData);
+            console.log("Added new identification to history array");
+            
+            const newHistoryJson = JSON.stringify(existingHistory);
+            console.log("New history JSON length:", newHistoryJson.length);
+            
+            localStorage.setItem(historyKey, newHistoryJson);
+            console.log("Successfully saved to localStorage");
+            
+            // Set the ID for favorite functionality
+            setSavedIdentificationId(identificationId);
+            console.log("Updated savedIdentificationId state:", identificationId);
+            
+            // This step is optional but helps with error detection
+            const verifyHistory = localStorage.getItem(historyKey);
+            console.log("Verification: history items count:", 
+              verifyHistory ? JSON.parse(verifyHistory).length : 0);
+            
+          } catch (jsonError) {
+            console.error("JSON processing error:", jsonError);
+            // Last resort fallback: simple direct save
+            const fallbackData = {
+              id: identificationId,
+              scientificName: results.scientificName,
+              commonName: results.commonName,
+              imageUrl: uploadedImage, // Use original
+              isFavorite: false,
+            };
+            localStorage.setItem(historyKey, JSON.stringify([fallbackData]));
+            setSavedIdentificationId(identificationId);
+            console.log("Used fallback simple save mechanism");
+          }
           
           // Try server save in background if authenticated
           if (user?.username) {
             try {
+              console.log("Attempting server-side history save...");
               fetch(`/api/users/${user.username}/history`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(identificationData),
-              }).catch(err => console.log('Background server save error (non-critical):', err));
+              })
+              .then(response => {
+                console.log("Server history save response:", response.status);
+              })
+              .catch(err => console.log('Background server save error (non-critical):', err));
             } catch (e) {
               // Ignore server errors for background save
+              console.log("Error in server-side history save attempt:", e);
             }
           }
         } catch (error) {
           console.error('Auto-save error:', error);
-          // Don't show errors for auto-save
+          // Create an emergency fallback to ensure the ID is set
+          if (!savedIdentificationId) {
+            const emergencyId = `emergency-${Date.now()}`;
+            setSavedIdentificationId(emergencyId);
+            console.log("Set emergency ID due to save failure:", emergencyId);
+          }
         }
       };
       
