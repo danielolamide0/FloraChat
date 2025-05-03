@@ -11,7 +11,7 @@ interface Message {
 }
 
 interface ChatBotProps {
-  uploadedImage: string | null;
+  uploadedImage: string | undefined;
   identificationResults: any | null;
 }
 

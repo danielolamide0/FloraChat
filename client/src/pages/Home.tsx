@@ -49,7 +49,7 @@ export default function Home() {
 
   const handleNewIdentification = () => {
     setShowResults(false);
-    setUploadedImage(null);
+    setUploadedImage(undefined);
     setIdentificationResults(null);
   };
 

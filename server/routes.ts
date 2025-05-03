@@ -634,7 +634,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ message: "Plant identification service failed" });
         }
         
-        const data = await response.json();
+        const data = await response.json() as {
+          results?: Array<{
+            score: number;
+            species: {
+              scientificNameWithoutAuthor: string;
+              commonNames?: string[];
+              family?: { scientificNameWithoutAuthor: string };
+              genus?: { scientificNameWithoutAuthor: string };
+              gbif?: { description: string };
+            };
+            images?: Array<{
+              url: {
+                o: string;
+              };
+            }>;
+          }>;
+          queryMetadata?: {
+            classification?: string;
+          };
+        };
         
         // Check if results exist
         if (!data.results || data.results.length === 0) {
@@ -681,7 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: bestMatch.species.gbif?.description || '',
           referenceImageUrl,
           imageUrl: req.file.buffer.toString('base64'),
-          similarPlants: data.results.slice(1, 5).map((result: any) => {
+          similarPlants: data.results.slice(1, 5).map((result) => {
             const similarSpecies = result.species;
             return {
               scientificName: similarSpecies.scientificNameWithoutAuthor,
