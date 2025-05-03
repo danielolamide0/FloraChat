@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Bookmark, PlusCircle, Star, LogIn } from "lucide-react";
+import { PlusCircle, Star, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PlantIdentificationResult } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, saveToHistory, toggleFavorite } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 
 interface ResultsSectionProps {
@@ -31,106 +29,64 @@ export default function ResultsSection({
   const [isFavorite, setIsFavorite] = useState(false);
   const [savedIdentificationId, setSavedIdentificationId] = useState<string | null>(null);
 
-  const handleSaveToHistory = async () => {
-    if (!results) return;
-    
-    if (!isAuthenticated) {
-      toast({
-        title: "Login required",
-        description: "Please login to save identifications to your history.",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-    
-    setIsSaving(true);
-    try {
-      // Create data to save with current timestamp as ID
-      const identificationId = `id-${Date.now()}`;
-      const identificationData = {
-        id: identificationId,
-        scientificName: results.scientificName,
-        commonName: results.commonName,
-        family: results.family,
-        genus: results.genus,
-        confidence: results.confidence,
-        category: results.category,
-        distribution: results.distribution,
-        habitat: results.habitat,
-        description: results.description,
-        imageUrl: uploadedImage,
-        referenceImageUrl: results.referenceImageUrl,
-        similarPlants: results.similarPlants,
-        createdAt: new Date().toISOString(),
-        isFavorite: false,
-      };
-      
-      // Try server-side first
-      try {
-        const response = await fetch(`/api/users/${user?.username}/history`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(identificationData),
-        });
-        
-        if (response.ok) {
-          const savedData = await response.json();
-          if (savedData && savedData.id) {
-            setSavedIdentificationId(savedData.id);
-          } else {
-            setSavedIdentificationId(identificationId);
-          }
-        } else {
-          throw new Error('Server response not OK');
-        }
-      } catch (serverError) {
-        console.error('Server error, using localStorage instead:', serverError);
-        
-        // Fallback to localStorage
+  // Auto-save to history when identification results are available
+  useEffect(() => {
+    if (results && !savedIdentificationId) {
+      // Auto-save to history silently
+      const saveToHistoryAutomatically = async () => {
         try {
-          // First, clear any old guest storage if a user is logged in
-          if (user?.username) {
-            localStorage.removeItem('plantHistory_guest');
-          }
+          // Create data with timestamp ID
+          const identificationId = `id-${Date.now()}`;
+          const identificationData = {
+            id: identificationId,
+            scientificName: results.scientificName,
+            commonName: results.commonName,
+            family: results.family,
+            genus: results.genus,
+            confidence: results.confidence,
+            category: results.category,
+            distribution: results.distribution,
+            habitat: results.habitat,
+            description: results.description,
+            imageUrl: uploadedImage,
+            referenceImageUrl: results.referenceImageUrl,
+            similarPlants: results.similarPlants,
+            createdAt: new Date().toISOString(),
+            isFavorite: false,
+          };
           
-          // Get existing history or initialize empty array
+          // Save to history
           const historyKey = `plantHistory_${user?.username || 'guest'}`;
-          console.log('Using history key:', historyKey);
           const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-          
-          // Add the new identification to history
           existingHistory.unshift(identificationData);
-          
-          // Save back to localStorage
           localStorage.setItem(historyKey, JSON.stringify(existingHistory));
           
-          // Set the ID so UI shows favorites button
+          // Set the ID for favorite functionality
           setSavedIdentificationId(identificationId);
-        } catch (localStorageError) {
-          console.error('localStorage error:', localStorageError);
-          throw new Error('Failed to save to localStorage');
+          
+          // Try server save in background if authenticated
+          if (user?.username) {
+            try {
+              fetch(`/api/users/${user.username}/history`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(identificationData),
+              }).catch(err => console.log('Background server save error (non-critical):', err));
+            } catch (e) {
+              // Ignore server errors for background save
+            }
+          }
+        } catch (error) {
+          console.error('Auto-save error:', error);
+          // Don't show errors for auto-save
         }
-      }
+      };
       
-      // Show favorites button right after saving
-      toast({
-        title: "Saved to history",
-        description: "This identification has been added to your history. You can now add it to favorites.",
-      });
-    } catch (error) {
-      console.error('Save error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save identification to history.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
+      saveToHistoryAutomatically();
     }
-  };
+  }, [results, user]);
   
   const handleToggleFavorite = async () => {
     if (!isAuthenticated) {
@@ -210,19 +166,7 @@ export default function ResultsSection({
     }
   };
 
-  const handleExportData = () => {
-    if (!results) return;
-    
-    const dataStr = JSON.stringify(results, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `plant-identification-${results.scientificName.toLowerCase().replace(/\s+/g, '-')}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
+  // Export function removed as requested
 
   return (
     <section id="results-section" className="mb-12">
@@ -339,7 +283,7 @@ export default function ResultsSection({
                       </h4>
                       
                       <button 
-                        onClick={savedIdentificationId ? handleToggleFavorite : handleSaveToHistory}
+                        onClick={handleToggleFavorite}
                         className="ml-3 p-2 rounded-full hover:bg-yellow-50 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-200"
                         aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                         title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -390,47 +334,6 @@ export default function ResultsSection({
                   </div>
 
                   <div className="flex flex-wrap justify-center sm:justify-end gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 font-heading font-medium shadow-sm text-xs sm:text-sm"
-                      onClick={handleExportData}
-                    >
-                      <Download className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Export Data
-                    </Button>
-                    
-                    {savedIdentificationId ? (
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className={`${isFavorite 
-                          ? 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100' 
-                          : 'border-green-200 text-green-700 hover:bg-green-50'} font-heading font-medium shadow-sm text-xs sm:text-sm`}
-                        onClick={handleToggleFavorite}
-                      >
-                        <Star className={`mr-1 h-3 w-3 sm:h-4 sm:w-4 ${isFavorite ? 'fill-yellow-500' : ''}`} /> 
-                        {isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                      </Button>
-                    ) : (
-                      <Button 
-                        size="sm"
-                        className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-heading font-medium shadow-sm text-xs sm:text-sm"
-                        onClick={handleSaveToHistory}
-                        disabled={isSaving}
-                      >
-                        {isSaving ? (
-                          <>
-                            <div className="mr-1 h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-green-200 border-t-white" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Bookmark className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Save to History
-                          </>
-                        )}
-                      </Button>
-                    )}
-                    
                     {!isAuthenticated && (
                       <Button
                         variant="link"
@@ -438,7 +341,7 @@ export default function ResultsSection({
                         className="text-green-700 hover:text-green-800 font-heading font-medium text-xs sm:text-sm"
                         onClick={() => navigate('/auth')}
                       >
-                        <LogIn className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Login to save plants
+                        <LogIn className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Login to save favorites
                       </Button>
                     )}
                   </div>

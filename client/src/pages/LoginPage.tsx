@@ -105,7 +105,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex justify-center text-sm text-slate-500">
             <p>
-              Simple username login, no password required
+              FloraChat by Synaptide AI
             </p>
           </CardFooter>
         </Card>
