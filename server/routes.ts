@@ -139,10 +139,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get identifications from database
         const identifications = await storage.getAllPlantIdentifications();
         
-        // Filter to only include this user's identifications
+        // Filter to only include this user's identifications by matching on username
+        // Log the filter operation for debugging
+        console.log(`Filtering ${identifications.length} identifications for user ${username}`);
+        console.log('Database contains usernames:', identifications.map(id => id.username));
+        
         const userIdentifications = identifications.filter(
           identification => identification.username === username
         );
+        
+        console.log(`Found ${userIdentifications.length} identifications for user ${username}`);
         
         // Format the response to match the expected client format
         const history = userIdentifications.map(identification => ({
@@ -218,9 +224,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const identifications = await storage.getAllPlantIdentifications();
         
         // Filter to only include this user's favorited identifications
+        // Log the filter operation for debugging
+        console.log(`Filtering favorites among ${identifications.length} identifications for user ${username}`);
+        console.log('Database contains usernames:', identifications.map(id => id.username));
+        
         const userFavorites = identifications.filter(
           identification => identification.username === username && identification.isFavorite === true
         );
+        
+        console.log(`Found ${userFavorites.length} favorites for user ${username}`);
         
         // Format the response to match the expected client format
         const favorites = userFavorites.map(identification => ({

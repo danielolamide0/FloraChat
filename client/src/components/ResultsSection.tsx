@@ -43,7 +43,13 @@ export default function ResultsSection({
       const existingHistory = JSON.parse(existingHistoryJson);
       console.log("Parsed existing history, items:", existingHistory.length);
       
-      existingHistory.unshift(data);
+      // Make sure the data has a username property
+      const dataWithUsername = {
+        ...data,
+        username: username, // Ensure username is always included
+      };
+      
+      existingHistory.unshift(dataWithUsername);
       console.log("Added new identification to history array");
       
       const newHistoryJson = JSON.stringify(existingHistory);
@@ -55,6 +61,7 @@ export default function ResultsSection({
       if (results) {
         const fallbackData = {
           id: identificationId,
+          username: username, // Always include username
           scientificName: results.scientificName || 'Unknown',
           commonName: results.commonName || 'Unknown plant',
           imageUrl: uploadedImage, // Use original
@@ -148,6 +155,7 @@ export default function ResultsSection({
           console.log("Images persisted, creating identification data object");
           const identificationData = {
             id: identificationId,
+            username: user?.username, // Explicitly include username if available
             scientificName: results.scientificName,
             commonName: results.commonName,
             family: results.family,
