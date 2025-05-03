@@ -37,6 +37,36 @@ export default function ResultsSection({
         try {
           // Create data with timestamp ID
           const identificationId = `id-${Date.now()}`;
+          
+          // Function to convert an image URL to a base64 data URL if needed
+          const persistImage = async (imageUrl: string | null): Promise<string | null> => {
+            if (!imageUrl) return null;
+            
+            // If it's already a data URL, return it as is
+            if (imageUrl.startsWith('data:')) {
+              return imageUrl;
+            }
+            
+            // Otherwise, fetch and convert to data URL
+            try {
+              const response = await fetch(imageUrl);
+              const blob = await response.blob();
+              
+              return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+              });
+            } catch (err) {
+              console.error('Error converting image to base64:', err);
+              return imageUrl; // Fallback to original URL
+            }
+          };
+          
+          // Persist images to localStorage as base64
+          const persistedMainImage = await persistImage(uploadedImage);
+          const persistedReferenceImage = await persistImage(results.referenceImageUrl);
+          
           const identificationData = {
             id: identificationId,
             scientificName: results.scientificName,
@@ -48,8 +78,8 @@ export default function ResultsSection({
             distribution: results.distribution,
             habitat: results.habitat,
             description: results.description,
-            imageUrl: uploadedImage,
-            referenceImageUrl: results.referenceImageUrl,
+            imageUrl: persistedMainImage,
+            referenceImageUrl: persistedReferenceImage,
             similarPlants: results.similarPlants,
             createdAt: new Date().toISOString(),
             isFavorite: false,
