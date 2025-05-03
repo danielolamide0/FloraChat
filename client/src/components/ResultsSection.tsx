@@ -86,7 +86,7 @@ export default function ResultsSection({
       
       saveToHistoryAutomatically();
     }
-  }, [results, user]);
+  }, [results, user, uploadedImage, savedIdentificationId]);
   
   const handleToggleFavorite = async () => {
     if (!isAuthenticated) {
@@ -100,14 +100,19 @@ export default function ResultsSection({
     }
     
     if (!savedIdentificationId) {
+      // The identification should be auto-saved already, but if it's not:
       toast({
-        title: "Save first",
-        description: "Please save to history before adding to favorites.",
+        title: "Processing",
+        description: "Please wait while we prepare your identification.",
       });
       return;
     }
     
     try {
+      // Update UI immediately for a responsive feel
+      const newFavoriteState = !isFavorite;
+      setIsFavorite(newFavoriteState);
+      
       // Try server-side first
       try {
         const response = await fetch(`/api/users/${user?.username}/favorites`, {
@@ -117,7 +122,7 @@ export default function ResultsSection({
           },
           body: JSON.stringify({ 
             identificationId: savedIdentificationId, 
-            isFavorite: !isFavorite 
+            isFavorite: newFavoriteState 
           }),
         });
         
@@ -136,7 +141,7 @@ export default function ResultsSection({
           // Find the item and update its favorite status
           const updatedHistory = existingHistory.map((item: any) => {
             if (item.id === savedIdentificationId) {
-              return {...item, isFavorite: !isFavorite};
+              return {...item, isFavorite: newFavoriteState};
             }
             return item;
           });
@@ -149,15 +154,14 @@ export default function ResultsSection({
         }
       }
       
-      // Update the UI
-      setIsFavorite(!isFavorite);
-      
       toast({
-        title: isFavorite ? "Removed from favorites" : "Added to favorites",
-        description: `The plant has been ${isFavorite ? 'removed from' : 'added to'} your favorites.`,
+        title: newFavoriteState ? "Added to favorites" : "Removed from favorites",
+        description: `The plant has been ${newFavoriteState ? 'added to' : 'removed from'} your favorites.`,
       });
     } catch (error) {
       console.error('Favorite toggle error:', error);
+      // Revert UI state on error
+      setIsFavorite(!isFavorite);
       toast({
         title: "Error",
         description: "Failed to update favorite status.",
