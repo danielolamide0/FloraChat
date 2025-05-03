@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Leaf, User, LogIn, LogOut } from "lucide-react";
+import { Leaf, User, LogIn, LogOut, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,6 +55,11 @@ export default function Header() {
               <li>
                 <Link href="/history" className={`font-heading font-medium ${location === "/history" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors`}>
                   History
+                </Link>
+              </li>
+              <li>
+                <Link href="/favorites" className={`font-heading font-medium ${location === "/favorites" ? "text-primary" : "text-neutral-dark hover:text-primary"} transition-colors flex items-center`}>
+                  <Star className="mr-1 h-4 w-4 text-yellow-500" /> Favorites
                 </Link>
               </li>
               <li>
@@ -147,6 +152,17 @@ export default function Header() {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     History
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/favorites"
+                    className={`block py-2.5 px-4 font-heading font-medium rounded-md ${location === "/favorites" ? "bg-primary text-white" : "text-neutral-dark hover:bg-neutral-light"}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <Star className="mr-2 h-4 w-4 text-yellow-500" /> Favorites
+                    </div>
                   </Link>
                 </li>
                 <li>

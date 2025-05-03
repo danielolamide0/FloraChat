@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import History from "@/pages/History";
+import Favorites from "@/pages/Favorites";
 import About from "@/pages/About";
 import LoginPage from "@/pages/LoginPage";
 import ProfilePage from "@/pages/ProfilePage";
@@ -59,6 +60,11 @@ function Router() {
               <Route path="/history">
                 <ProtectedRoute>
                   <History />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/favorites">
+                <ProtectedRoute>
+                  <Favorites />
                 </ProtectedRoute>
               </Route>
               <Route path="/about" component={About} />
