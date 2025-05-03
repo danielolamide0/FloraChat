@@ -25,27 +25,83 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Local storage functions - primary data source
+// Database-first data store functions
 export async function saveToHistory(username: string, data: any) {
   try {
-    // Try Firebase as a bonus
+    // Primary storage - send to server/database
     try {
-      await saveIdentificationToHistory(username, data);
-    } catch (error) {
-      console.error('Firebase save error (continuing with localStorage):', error);
+      const response = await fetch(`/api/users/${username}/history`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const savedData = await response.json();
+      console.log('Identification saved to server database:', savedData);
+      
+      // Also update localStorage as a cache
+      try {
+        const historyKey = `plantHistory_${username}`;
+        let existingItems = [];
+        
+        try {
+          const existingData = localStorage.getItem(historyKey);
+          if (existingData) {
+            existingItems = JSON.parse(existingData);
+          }
+        } catch (parseError) {
+          console.error('Error parsing existing history:', parseError);
+        }
+        
+        // Remove any existing items with the same ID to avoid duplicates
+        existingItems = existingItems.filter((item: any) => item.id !== data.id);
+        
+        // Add the new item at the beginning
+        existingItems.unshift(data);
+        localStorage.setItem(historyKey, JSON.stringify(existingItems));
+      } catch (localStorageError) {
+        console.error('Failed to update localStorage cache:', localStorageError);
+      }
+      
+      return savedData;
+    } catch (serverError) {
+      console.error('Server database save failed, trying Firebase fallback:', serverError);
+      
+      // Secondary fallback - try Firebase
+      try {
+        await saveIdentificationToHistory(username, data);
+      } catch (firebaseError) {
+        console.error('Firebase save error, falling back to localStorage only:', firebaseError);
+      }
+      
+      // Last resort - localStorage only
+      const historyKey = `plantHistory_${username}`;
+      let existingItems = [];
+      
+      try {
+        const existingData = localStorage.getItem(historyKey);
+        if (existingData) {
+          existingItems = JSON.parse(existingData);
+        }
+      } catch (parseError) {
+        console.error('Error parsing existing history:', parseError);
+      }
+      
+      // Remove any existing items with the same ID to avoid duplicates
+      existingItems = existingItems.filter((item: any) => item.id !== data.id);
+      
+      // Add the new item at the beginning
+      existingItems.unshift(data);
+      localStorage.setItem(historyKey, JSON.stringify(existingItems));
+      
+      return data;
     }
-    
-    // Primary storage in localStorage
-    const historyKey = `plantHistory_${username}`;
-    const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-    
-    // Add data to the beginning of the array (newest first)
-    existingHistory.unshift(data);
-    
-    // Save back to localStorage
-    localStorage.setItem(historyKey, JSON.stringify(existingHistory));
-    
-    return data;
   } catch (error) {
     console.error('Error saving identification to history:', error);
     throw error;
