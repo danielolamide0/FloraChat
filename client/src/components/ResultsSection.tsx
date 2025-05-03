@@ -42,10 +42,10 @@ export default function ResultsSection({
           console.log("Creating new identification with ID:", identificationId);
           
           // Function to convert an image URL to a base64 data URL if needed
-          const persistImage = async (imageUrl: string | null): Promise<string | null> => {
+          const persistImage = async (imageUrl: string | undefined): Promise<string | undefined> => {
             if (!imageUrl) {
               console.log("No image URL provided to persistImage");
-              return null;
+              return undefined;
             }
             
             console.log("Starting image persistence for URL:", imageUrl.substring(0, 50) + "...");
@@ -99,10 +99,12 @@ export default function ResultsSection({
             console.error("Failed to persist main image, using original:", imageErr);
           }
           
-          try {
-            persistedReferenceImage = await persistImage(results.referenceImageUrl);
-          } catch (refImageErr) {
-            console.error("Failed to persist reference image, using original:", refImageErr);
+          if (results.referenceImageUrl) {
+            try {
+              persistedReferenceImage = await persistImage(results.referenceImageUrl);
+            } catch (refImageErr) {
+              console.error("Failed to persist reference image, using original:", refImageErr);
+            }
           }
           
           console.log("Images persisted, creating identification data object");

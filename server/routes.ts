@@ -722,8 +722,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             imageUrl = `data:image/${req.file.mimetype.split('/')[1]};base64,${req.file.buffer.toString('base64')}`;
           }
 
+          // Generate a client ID for this identification
+          const clientId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          
           // Save identification to application storage
           const createdId = await storage.createPlantIdentification({
+            username: 'guest', // Default to guest user for API identifications
+            clientId,
             scientificName: identificationResult.scientificName,
             commonName: identificationResult.commonName,
             family: identificationResult.family,
@@ -734,7 +739,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             habitat: identificationResult.habitat,
             description: identificationResult.description,
             referenceImageUrl: identificationResult.referenceImageUrl,
-            imageUrl: imageUrl
+            imageUrl: imageUrl,
+            isFavorite: false
           });
           
           // Add similar plants
@@ -832,7 +838,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = schema.parse(req.body);
       
+      // Generate a client ID for the identification
+      const clientId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
       const newIdentification = await storage.createPlantIdentification({
+        username: 'guest', // Default username for API-created identifications
+        clientId,
         scientificName: validatedData.scientificName,
         commonName: validatedData.commonName,
         family: validatedData.family,
@@ -844,6 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: validatedData.description,
         referenceImageUrl: validatedData.referenceImageUrl,
         imageUrl: validatedData.imageUrl,
+        isFavorite: false
       });
       
       // Add similar plants if they exist

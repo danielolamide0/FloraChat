@@ -118,14 +118,18 @@ export class MemStorage implements IStorage {
   async createPlantIdentification(insertIdentification: InsertPlantIdentification): Promise<PlantIdentification> {
     const id = this.currentPlantIdentificationId++;
     
-    // Ensure required fields are not undefined
+    // Ensure all required fields are present with appropriate defaults
     const identification: PlantIdentification = { 
-      ...insertIdentification, 
       id,
+      username: insertIdentification.username,
       userId: insertIdentification.userId || null,
+      clientId: insertIdentification.clientId,
+      imageUrl: insertIdentification.imageUrl,
+      scientificName: insertIdentification.scientificName,
       commonName: insertIdentification.commonName || null,
       family: insertIdentification.family || null,
       genus: insertIdentification.genus || null,
+      confidence: insertIdentification.confidence || null,
       category: insertIdentification.category || null,
       distribution: insertIdentification.distribution || null,
       habitat: insertIdentification.habitat || null,
