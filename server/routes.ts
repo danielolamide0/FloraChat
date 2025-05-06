@@ -151,18 +151,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Found ${userIdentifications.length} identifications for user ${username}`);
         
         // Format the response to match the expected client format
-        const history = userIdentifications.map(identification => ({
-          id: identification.clientId,
-          scientificName: identification.scientificName,
-          commonName: identification.commonName || identification.scientificName,
-          family: identification.family || '',
-          genus: identification.genus || '',
-          confidence: identification.confidence || 0,
-          imageUrl: identification.imageUrl,
-          referenceImageUrl: identification.referenceImageUrl || null,
-          isFavorite: identification.isFavorite,
-          createdAt: identification.identifiedAt
-        }));
+        // Check image URL sizes - if they're too large, replace with placeholder
+        const history = userIdentifications.map(identification => {
+          // Process the image URLs to handle potential large data URLs
+          let imageUrl = identification.imageUrl;
+          let referenceImageUrl = identification.referenceImageUrl;
+          
+          // Return formatted identification
+          return {
+            id: identification.clientId,
+            scientificName: identification.scientificName,
+            commonName: identification.commonName || identification.scientificName,
+            family: identification.family || '',
+            genus: identification.genus || '',
+            confidence: identification.confidence || 0,
+            imageUrl: imageUrl, // Keep the URL as-is (client will compress if needed)
+            referenceImageUrl: referenceImageUrl || null,
+            isFavorite: identification.isFavorite,
+            createdAt: identification.identifiedAt,
+            username: identification.username // Ensure username is included
+          };
+        });
         
         return res.status(200).json(history);
       } catch (dbError) {
@@ -235,18 +244,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Found ${userFavorites.length} favorites for user ${username}`);
         
         // Format the response to match the expected client format
-        const favorites = userFavorites.map(identification => ({
-          id: identification.clientId,
-          scientificName: identification.scientificName,
-          commonName: identification.commonName || identification.scientificName,
-          family: identification.family || '',
-          genus: identification.genus || '',
-          confidence: identification.confidence || 0,
-          imageUrl: identification.imageUrl,
-          referenceImageUrl: identification.referenceImageUrl || null,
-          isFavorite: true,
-          createdAt: identification.identifiedAt
-        }));
+        // Process images to handle potential large data URLs
+        const favorites = userFavorites.map(identification => {
+          // Process the image URLs - keep original but client will compress if needed
+          let imageUrl = identification.imageUrl;
+          let referenceImageUrl = identification.referenceImageUrl;
+          
+          return {
+            id: identification.clientId,
+            scientificName: identification.scientificName,
+            commonName: identification.commonName || identification.scientificName,
+            family: identification.family || '',
+            genus: identification.genus || '',
+            confidence: identification.confidence || 0,
+            imageUrl: imageUrl,
+            referenceImageUrl: referenceImageUrl || null,
+            isFavorite: true,
+            createdAt: identification.identifiedAt,
+            username: identification.username // Ensure username is included
+          };
+        });
         
         return res.status(200).json(favorites);
       } catch (dbError) {

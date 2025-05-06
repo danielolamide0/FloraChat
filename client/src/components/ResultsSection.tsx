@@ -87,6 +87,7 @@ export default function ResultsSection({
           console.log("Creating new identification with ID:", identificationId);
           
           // Function to convert an image URL to a base64 data URL if needed
+          // Now with built-in compression for large images
           const persistImage = async (imageUrl: string | undefined): Promise<string | undefined> => {
             if (!imageUrl) {
               console.log("No image URL provided to persistImage");
@@ -95,9 +96,13 @@ export default function ResultsSection({
             
             console.log("Starting image persistence for URL:", imageUrl.substring(0, 50) + "...");
             
-            // If it's already a data URL, return it as is
+            // If it's already a data URL, compress it if it's large
             if (imageUrl.startsWith('data:')) {
-              console.log("Image is already a data URL, returning as is");
+              console.log("Image is already a data URL, checking size...");
+              // If data URL is very large, compress it
+              if (imageUrl.length > 200000) { // ~200KB threshold
+                return compressImageDataUrl(imageUrl);
+              }
               return imageUrl;
             }
             
@@ -116,10 +121,17 @@ export default function ResultsSection({
               return new Promise((resolve) => {
                 console.log("Creating FileReader for blob...");
                 const reader = new FileReader();
-                reader.onloadend = () => {
-                  console.log("FileReader completed, data URL length:", 
-                    reader.result ? (reader.result as string).length : 0);
-                  resolve(reader.result as string);
+                reader.onloadend = async () => {
+                  const dataUrl = reader.result as string;
+                  console.log("FileReader completed, data URL length:", dataUrl.length);
+                  
+                  // Compress the image if it's too large for storage
+                  if (dataUrl.length > 200000) { // ~200KB threshold
+                    const compressed = await compressImageDataUrl(dataUrl);
+                    resolve(compressed);
+                  } else {
+                    resolve(dataUrl);
+                  }
                 };
                 reader.onerror = () => {
                   console.error("FileReader error:", reader.error);
@@ -131,6 +143,57 @@ export default function ResultsSection({
               console.error('Error converting image to base64:', err);
               return imageUrl; // Fallback to original URL
             }
+          };
+          
+          // Helper function to compress image data URLs
+          const compressImageDataUrl = (dataUrl: string): Promise<string> => {
+            return new Promise((resolve) => {
+              console.log("Compressing large image data URL...");
+              const img = new Image();
+              img.onload = () => {
+                // Create a canvas with reduced dimensions
+                const canvas = document.createElement('canvas');
+                
+                // Determine dimensions (max 800px width or height while maintaining aspect ratio)
+                const MAX_SIZE = 800;
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > height && width > MAX_SIZE) {
+                  height = (height * MAX_SIZE) / width;
+                  width = MAX_SIZE;
+                } else if (height > MAX_SIZE) {
+                  width = (width * MAX_SIZE) / height;
+                  height = MAX_SIZE;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw and compress
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                  console.error("Could not get canvas context for compression");
+                  resolve(dataUrl); // Fallback to original if canvas not supported
+                  return;
+                }
+                
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Create compressed data URL (0.8 quality - good balance of size vs quality)
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                console.log(`Compressed image from ${dataUrl.length} to ${compressedDataUrl.length} bytes`);
+                
+                resolve(compressedDataUrl);
+              };
+              
+              img.onerror = () => {
+                console.error("Error loading image for compression");
+                resolve(dataUrl); // Return original on error
+              };
+              
+              img.src = dataUrl;
+            });
           };
           
           // Save identification data even if image persistence fails
