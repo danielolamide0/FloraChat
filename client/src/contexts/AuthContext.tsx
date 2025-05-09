@@ -1,14 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  saveIdentificationToHistory, 
-  getUserIdentificationHistory,
-  getUserFavorites,
-  toggleFavorite as toggleFavoriteFirebase,
-  deleteIdentification as deleteIdentificationFirebase,
-  getUser,
-  createUser,
-  updateUserLastLogin
-} from '@/firebase/user';
+import * as firebaseUser from '@/firebase/user';
 
 interface User {
   username: string;
@@ -36,7 +27,7 @@ export async function saveToHistory(username: string, data: any) {
         clientId: data.clientId || `${Date.now()}-${Math.floor(Math.random() * 1000)}`
       };
       
-      const savedData = await saveIdentificationToHistory(username, dataToSave);
+      const savedData = await saveToFirebaseHistory(username, dataToSave);
       console.log('Identification saved to Firebase:', savedData);
       
       // Also update localStorage as a cache
@@ -176,7 +167,7 @@ export async function getHistory(username: string) {
   try {
     // Primary storage - Firebase
     try {
-      const firebaseData = await getUserIdentificationHistory(username);
+      const firebaseData = await getFirebaseHistory(username);
       console.log('Retrieved history from Firebase:', firebaseData.length, 'items');
       
       // Update localStorage cache
@@ -237,7 +228,7 @@ export async function getFavorites(username: string) {
   try {
     // Primary storage - Firebase
     try {
-      const firebaseData = await getUserFavorites(username);
+      const firebaseData = await getFirebaseFavorites(username);
       console.log('Retrieved favorites from Firebase:', firebaseData.length, 'items');
       return firebaseData;
     } catch (firebaseError) {
@@ -278,7 +269,7 @@ export async function getFavorites(username: string) {
   }
 }
 
-export async function toggleFavorite(username: string, identificationId: string, isFavorite: boolean) {
+export async function toggleFavorite(username: string, identificationId: string, isFavorite: boolean): Promise<{id: string, isFavorite: boolean}> {
   try {
     // Primary storage - Firebase
     try {
@@ -413,7 +404,7 @@ export async function toggleFavorite(username: string, identificationId: string,
   }
 }
 
-export async function deleteIdentification(username: string, identificationId: string) {
+export async function deleteIdentification(username: string, identificationId: string): Promise<{id: string, success: boolean}> {
   try {
     // Primary storage - Firebase
     try {
@@ -516,7 +507,7 @@ export async function deleteIdentification(username: string, identificationId: s
           console.error('Failed to update localStorage:', localStorageError);
         }
         
-        return { id: identificationId, deleted: true };
+        return { id: identificationId, success: true };
       }
     }
   } catch (error) {
