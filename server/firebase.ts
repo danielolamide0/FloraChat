@@ -261,9 +261,10 @@ export async function getUserIdentificationHistory(username: string) {
     // Query for non-deleted items, ordered by timestamp (newest first)
     const q = query(
       historyCollection,
-      where("deleted", "!=", true),
-      orderBy("createdAt", "desc")
+      where("deleted", "!=", true)
     );
+    
+    // Note: We'll sort manually after fetching since there's an issue with orderBy
     
     const querySnapshot = await getDocs(q);
     
@@ -280,8 +281,15 @@ export async function getUserIdentificationHistory(username: string) {
       };
     });
     
-    console.log(`Retrieved ${identifications.length} history items for user ${username}`);
-    return identifications;
+    // Sort manually by createdAt (newest first)
+    const sortedIdentifications = identifications.sort((a, b) => {
+      const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return bDate.getTime() - aDate.getTime();
+    });
+    
+    console.log(`Retrieved ${sortedIdentifications.length} history items for user ${username}`);
+    return sortedIdentifications;
   } catch (error) {
     console.error('Error getting user identification history:', error);
     throw error;
@@ -299,8 +307,7 @@ export async function getUserFavorites(username: string) {
     const favoritesCollection = getUserFavoritesCollection(username);
     const favoritesQuery = query(
       favoritesCollection,
-      where("deleted", "!=", true),
-      orderBy("createdAt", "desc")
+      where("deleted", "!=", true)
     );
     
     const favoritesSnapshot = await getDocs(favoritesQuery);
@@ -319,8 +326,15 @@ export async function getUserFavorites(username: string) {
         };
       });
       
-      console.log(`Retrieved ${favorites.length} favorites from dedicated collection for user ${username}`);
-      return favorites;
+      // Sort manually by createdAt (newest first)
+      const sortedFavorites = favorites.sort((a, b) => {
+        const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return bDate.getTime() - aDate.getTime();
+      });
+      
+      console.log(`Retrieved ${sortedFavorites.length} favorites from dedicated collection for user ${username}`);
+      return sortedFavorites;
     }
     
     // Fallback to filtering history for favorites
@@ -328,8 +342,7 @@ export async function getUserFavorites(username: string) {
     const historyQuery = query(
       historyCollection,
       where("isFavorite", "==", true),
-      where("deleted", "!=", true),
-      orderBy("createdAt", "desc")
+      where("deleted", "!=", true)
     );
     
     const historySnapshot = await getDocs(historyQuery);
@@ -345,8 +358,15 @@ export async function getUserFavorites(username: string) {
       };
     });
     
-    console.log(`Retrieved ${favorites.length} favorites from history for user ${username}`);
-    return favorites;
+    // Sort manually by createdAt (newest first)
+    const sortedFavorites = favorites.sort((a, b) => {
+      const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return bDate.getTime() - aDate.getTime();
+    });
+    
+    console.log(`Retrieved ${sortedFavorites.length} favorites from history for user ${username}`);
+    return sortedFavorites;
   } catch (error) {
     console.error('Error getting user favorites:', error);
     throw error;

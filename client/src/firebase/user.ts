@@ -164,11 +164,10 @@ export async function getUserIdentificationHistory(username: string) {
     // Get the user's history collection
     const historyCollection = getUserHistoryCollection(username);
     
-    // Query for non-deleted items, ordered by timestamp (newest first)
+    // Query for non-deleted items (we'll sort manually)
     const q = query(
       historyCollection,
-      where("deleted", "!=", true),
-      orderBy('createdAt', 'desc')
+      where("deleted", "!=", true)
     );
     
     const querySnapshot = await getDocs(q);
@@ -186,8 +185,15 @@ export async function getUserIdentificationHistory(username: string) {
       };
     });
     
-    console.log(`Retrieved ${identifications.length} history items for user ${username}`);
-    return identifications;
+    // Sort manually by createdAt (newest first)
+    const sortedIdentifications = identifications.sort((a, b) => {
+      const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return bDate.getTime() - aDate.getTime();
+    });
+    
+    console.log(`Retrieved ${sortedIdentifications.length} history items for user ${username}`);
+    return sortedIdentifications;
   } catch (error) {
     console.error('Error getting user identification history:', error);
     // Return an empty array instead of throwing to handle Firebase permission issues
