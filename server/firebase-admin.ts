@@ -188,25 +188,27 @@ export async function getUserIdentificationHistory(username: string) {
   }
 
   try {
-    // Get the history collection and filter by username
+    // Get the history collection and filter by username only
+    // This avoids the need for a composite index
     const historyRef = db.collection('history');
     const snapshot = await historyRef
       .where('username', '==', username)
-      .where('deleted', '!=', true)
       .get();
     
-    // Process the query results
-    const identifications = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Ensure createdAt is a JavaScript Date
-        createdAt: data.createdAt instanceof Timestamp ? 
-          data.createdAt.toDate() : 
-          data.createdAt
-      };
-    });
+    // Process the query results and filter deleted items in memory
+    const identifications = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Ensure createdAt is a JavaScript Date
+          createdAt: data.createdAt instanceof Timestamp ? 
+            data.createdAt.toDate() : 
+            data.createdAt
+        };
+      })
+      .filter(item => item.deleted !== true); // Filter out deleted items in memory
     
     // Sort manually by createdAt (newest first)
     const sortedIdentifications = identifications.sort((a, b) => {
@@ -230,29 +232,31 @@ export async function getUserFavorites(username: string) {
   }
 
   try {
-    // Get the favorites collection and filter by username
+    // First try getting favorites from the dedicated favorites collection
+    // Simplify the query to avoid composite index requirements
     const favoritesRef = db.collection('favorites');
     const favoritesSnapshot = await favoritesRef
       .where('username', '==', username)
-      .where('deleted', '!=', true)
       .get();
     
-    // If we have favorites in the dedicated collection, use those
-    if (!favoritesSnapshot.empty) {
-      const favorites = favoritesSnapshot.docs.map(doc => {
+    // Process and filter in memory instead
+    const favoritesData = favoritesSnapshot.docs
+      .map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
           ...data,
-          // Ensure createdAt is a JavaScript Date
           createdAt: data.createdAt instanceof Timestamp ? 
             data.createdAt.toDate() : 
             data.createdAt
         };
-      });
-      
+      })
+      .filter(item => item.deleted !== true); // Filter out deleted items in memory
+    
+    // If we found favorites, sort and return them
+    if (favoritesData.length > 0) {
       // Sort manually by createdAt (newest first)
-      const sortedFavorites = favorites.sort((a, b) => {
+      const sortedFavorites = favoritesData.sort((a, b) => {
         const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
         const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
         return bDate.getTime() - aDate.getTime();
@@ -263,27 +267,28 @@ export async function getUserFavorites(username: string) {
     }
     
     // Fallback to filtering history for favorites
+    // Simplify the query to avoid composite index requirements
     const historyRef = db.collection('history');
     const historySnapshot = await historyRef
       .where('username', '==', username)
-      .where('isFavorite', '==', true)
-      .where('deleted', '!=', true)
       .get();
     
-    const favorites = historySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Ensure createdAt is a JavaScript Date
-        createdAt: data.createdAt instanceof Timestamp ? 
-          data.createdAt.toDate() : 
-          data.createdAt
-      };
-    });
+    // Process, filter favorites, and remove deleted items in memory
+    const favoritesFromHistory = historySnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt instanceof Timestamp ? 
+            data.createdAt.toDate() : 
+            data.createdAt
+        };
+      })
+      .filter(item => item.isFavorite === true && item.deleted !== true);
     
     // Sort manually by createdAt (newest first)
-    const sortedFavorites = favorites.sort((a, b) => {
+    const sortedFavorites = favoritesFromHistory.sort((a, b) => {
       const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
       const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
       return bDate.getTime() - aDate.getTime();
