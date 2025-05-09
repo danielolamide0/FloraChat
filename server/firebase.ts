@@ -19,12 +19,21 @@ import {
 // Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${process.env.FIREBASE_PROJECT_ID}.firebaseapp.com`,
   projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.appspot.com`,
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.FIREBASE_APP_ID
 };
+
+// Log the full Firebase configuration for debugging (except API key)
+console.log('Firebase Configuration:', {
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId
+});
 
 // Initialize Firebase
 let app: any = null;
@@ -40,24 +49,21 @@ try {
   console.error("Error initializing Firebase:", error);
 }
 
-// Root collection for FloraChat
-const floraChatCollection = collection(db, "FloraChat");
-
 // Helper functions for Firebase access
 export const getUsersCollection = () => {
-  return collection(floraChatCollection, "Users");
+  return collection(db, "FloraChat", "data", "Users");
 };
 
 export const getUserDoc = (username: string) => {
-  return doc(getUsersCollection(), username);
+  return doc(db, "FloraChat", "data", "Users", username);
 };
 
 export const getUserHistoryCollection = (username: string) => {
-  return collection(getUserDoc(username), "history");
+  return collection(db, "FloraChat", "data", "Users", username, "history");
 };
 
 export const getUserFavoritesCollection = (username: string) => {
-  return collection(getUserDoc(username), "favorites");
+  return collection(db, "FloraChat", "data", "Users", username, "favorites");
 };
 
 /**
