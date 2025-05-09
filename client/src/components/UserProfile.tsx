@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, getHistory, getFavorites, toggleFavorite, deleteIdentification } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { HistoryIcon, StarIcon, LogOut, RefreshCw, Trash2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { IdentificationData } from '@/services/DataService';
 
-interface Identification {
+// Additional type definitions (if needed)
+interface LocalIdentificationData {
   id: string;
   scientificName: string;
   commonName: string;
@@ -31,8 +33,8 @@ export default function UserProfile() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('history');
-  const [history, setHistory] = useState<Identification[]>([]);
-  const [favorites, setFavorites] = useState<Identification[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
 
@@ -61,11 +63,8 @@ export default function UserProfile() {
     
     setIsLoadingFavorites(true);
     try {
-      const response = await fetch(`/api/users/${user.username}/favorites`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch favorites');
-      }
-      const data = await response.json();
+      // Use the DataService to get favorites
+      const data = await getFavorites(user.username);
       setFavorites(data);
     } catch (error) {
       console.error('Error fetching favorites:', error);
@@ -83,17 +82,8 @@ export default function UserProfile() {
     if (!user) return;
     
     try {
-      const response = await fetch(`/api/users/${user.username}/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ identificationId: id, isFavorite: !isFavorite }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update favorite status');
-      }
+      // Use the DataService to toggle favorite
+      const result = await toggleFavorite(user.username, id, !isFavorite);
       
       // Update local state
       if (activeTab === 'history') {
@@ -134,13 +124,8 @@ export default function UserProfile() {
     if (!user) return;
     
     try {
-      const response = await fetch(`/api/users/${user.username}/history/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete identification');
-      }
+      // Use the DataService to delete identification
+      const result = await deleteIdentification(user.username, id);
       
       // Update local state
       if (activeTab === 'history') {

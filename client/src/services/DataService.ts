@@ -1,18 +1,21 @@
 import * as firebaseUser from '@/firebase/user';
 
 // Type definitions for identification data
-interface IdentificationData {
-  id?: string;
-  clientId?: string;
-  scientificName?: string;
-  commonName?: string;
-  family?: string;
-  genus?: string;
-  confidence?: number;
-  imageUrl?: string;
-  referenceImageUrl?: string;
-  isFavorite?: boolean;
-  createdAt?: any;
+export interface IdentificationData {
+  id: string;
+  clientId: string;
+  scientificName: string;
+  commonName: string;
+  family: string;
+  genus: string;
+  confidence: number;
+  imageUrl: string;
+  referenceImageUrl: string;
+  isFavorite: boolean;
+  createdAt: {
+    seconds: number;
+    nanoseconds: number;
+  };
   [key: string]: any; // Allow additional properties
 }
 
