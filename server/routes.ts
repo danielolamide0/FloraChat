@@ -839,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Test route for Firebase connection
+  // Test route for Firebase connection (client SDK)
   app.get("/api/test-firebase", async (_req: Request, res: Response) => {
     try {
       // Print Firebase configuration for debugging
@@ -866,6 +866,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error testing Firebase connection:", error);
       res.status(500).json({ 
         error: "Failed to connect to Firebase", 
+        details: error.message,
+        stack: error.stack
+      });
+    }
+  });
+  
+  // Test route for Firebase Admin SDK connection
+  app.get("/api/test-firebase-admin", async (_req: Request, res: Response) => {
+    try {
+      // Import Firebase Admin functions
+      const { testFirebaseConnection } = await import('./firebase-admin');
+      
+      console.log("Attempting to test Firebase Admin connection...");
+      const result = await testFirebaseConnection();
+      
+      console.log("Firebase Admin test result:", result);
+      res.json({ 
+        success: true, 
+        message: "Firebase Admin connection successful",
+        result
+      });
+    } catch (error: any) {
+      console.error("Error testing Firebase Admin connection:", error);
+      res.status(500).json({ 
+        error: "Failed to connect to Firebase via Admin SDK", 
         details: error.message,
         stack: error.stack
       });

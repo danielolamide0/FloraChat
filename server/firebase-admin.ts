@@ -1,30 +1,43 @@
-import * as admin from 'firebase-admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import admin from 'firebase-admin';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin - this will use the GOOGLE_APPLICATION_CREDENTIALS env var
 // or the credentials can be provided explicitly
-let app: admin.app.App;
-let db: admin.firestore.Firestore;
-let storage: admin.storage.Storage;
+let app: admin.app.App | undefined;
+let db: admin.firestore.Firestore | undefined;
+let storage: admin.storage.Storage | undefined;
 
-try {
-  // Initialize the app
-  app = admin.initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-  });
-  
-  db = admin.firestore();
-  storage = admin.storage();
-  console.log("Firebase Admin SDK initialized successfully");
-} catch (error: any) {
-  console.error("Error initializing Firebase Admin SDK:", error);
-  if (error.code === 'app/duplicate-app') {
-    app = admin.app();
+// Only initialize if we have the required config
+if (process.env.FIREBASE_PROJECT_ID) {
+  try {
+    // Initialize with just the project ID to avoid needing a service account
+    // for simple testing - this requires Firebase auth rules to be set properly
+    app = admin.initializeApp({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+    });
+    
+    // Get the firestore and storage instances
     db = admin.firestore();
     storage = admin.storage();
-    console.log("Retrieved existing Firebase Admin app");
+    console.log("Firebase Admin SDK initialized successfully");
+  } catch (error: any) {
+    console.error("Error initializing Firebase Admin SDK:", error);
+    
+    // Handle case where the app has already been initialized
+    if (error.code === 'app/duplicate-app') {
+      try {
+        app = admin.app();
+        db = admin.firestore();
+        storage = admin.storage();
+        console.log("Retrieved existing Firebase Admin app");
+      } catch (appError) {
+        console.error("Error retrieving existing Firebase Admin app:", appError);
+      }
+    }
   }
+} else {
+  console.error("Firebase Admin SDK not initialized: Missing FIREBASE_PROJECT_ID");
 }
 
 // User management functions
@@ -374,6 +387,11 @@ export async function deleteIdentification(username: string, identificationId: s
 
 // Test function to check Firebase connectivity
 export async function testFirebaseConnection() {
+  if (!db) {
+    console.error('Firestore Admin not initialized');
+    throw new Error('Firestore Admin not initialized');
+  }
+  
   try {
     const testRef = db.collection('test').doc('connection-test');
     await testRef.set({
