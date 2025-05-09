@@ -25,25 +25,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Database-first data store functions
+// Firebase-first data store functions
 export async function saveToHistory(username: string, data: any) {
   try {
-    // Primary storage - send to server/database
+    // Primary storage - Firebase
     try {
-      const response = await fetch(`/api/users/${username}/history`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      // Ensure we have a clientId for consistent tracking
+      const dataToSave = {
+        ...data,
+        clientId: data.clientId || `${Date.now()}-${Math.floor(Math.random() * 1000)}`
+      };
       
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      const savedData = await response.json();
-      console.log('Identification saved to server database:', savedData);
+      const savedData = await saveIdentificationToHistory(username, dataToSave);
+      console.log('Identification saved to Firebase:', savedData);
       
       // Also update localStorage as a cache
       try {
@@ -60,47 +54,117 @@ export async function saveToHistory(username: string, data: any) {
         }
         
         // Remove any existing items with the same ID to avoid duplicates
-        existingItems = existingItems.filter((item: any) => item.id !== data.id);
+        existingItems = existingItems.filter((item: any) => item.id !== savedData.id);
         
         // Add the new item at the beginning
-        existingItems.unshift(data);
+        existingItems.unshift(savedData);
         localStorage.setItem(historyKey, JSON.stringify(existingItems));
       } catch (localStorageError) {
         console.error('Failed to update localStorage cache:', localStorageError);
       }
       
-      return savedData;
-    } catch (serverError) {
-      console.error('Server database save failed, trying Firebase fallback:', serverError);
-      
-      // Secondary fallback - try Firebase
+      // Secondary backup - server database
       try {
-        await saveIdentificationToHistory(username, data);
-      } catch (firebaseError) {
-        console.error('Firebase save error, falling back to localStorage only:', firebaseError);
-      }
-      
-      // Last resort - localStorage only
-      const historyKey = `plantHistory_${username}`;
-      let existingItems = [];
-      
-      try {
-        const existingData = localStorage.getItem(historyKey);
-        if (existingData) {
-          existingItems = JSON.parse(existingData);
+        const response = await fetch(`/api/users/${username}/history`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dataToSave),
+        });
+        
+        if (!response.ok) {
+          console.warn(`Server database backup returned ${response.status}: ${response.statusText}`);
+        } else {
+          console.log('Identification also backed up to server database');
         }
-      } catch (parseError) {
-        console.error('Error parsing existing history:', parseError);
+      } catch (serverError) {
+        console.warn('Server database backup failed:', serverError);
       }
       
-      // Remove any existing items with the same ID to avoid duplicates
-      existingItems = existingItems.filter((item: any) => item.id !== data.id);
+      return savedData;
+    } catch (firebaseError) {
+      console.error('Firebase save failed, trying server database fallback:', firebaseError);
       
-      // Add the new item at the beginning
-      existingItems.unshift(data);
-      localStorage.setItem(historyKey, JSON.stringify(existingItems));
-      
-      return data;
+      // Fallback - server database
+      try {
+        const response = await fetch(`/api/users/${username}/history`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const savedData = await response.json();
+        console.log('Identification saved to server database:', savedData);
+        
+        // Update localStorage cache
+        try {
+          const historyKey = `plantHistory_${username}`;
+          let existingItems = [];
+          
+          try {
+            const existingData = localStorage.getItem(historyKey);
+            if (existingData) {
+              existingItems = JSON.parse(existingData);
+            }
+          } catch (parseError) {
+            console.error('Error parsing existing history:', parseError);
+          }
+          
+          // Remove any existing items with the same ID to avoid duplicates
+          existingItems = existingItems.filter((item: any) => item.id !== savedData.id);
+          
+          // Add the new item at the beginning
+          existingItems.unshift(savedData);
+          localStorage.setItem(historyKey, JSON.stringify(existingItems));
+        } catch (localStorageError) {
+          console.error('Failed to update localStorage cache:', localStorageError);
+        }
+        
+        return savedData;
+      } catch (serverError) {
+        console.error('Server database fallback also failed, using localStorage only:', serverError);
+        
+        // Last resort - localStorage only
+        const clientId = data.clientId || `local-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const dataWithId = {
+          ...data,
+          id: clientId,
+          clientId,
+          createdAt: {
+            seconds: Math.floor(Date.now() / 1000),
+            nanoseconds: 0
+          },
+          isFavorite: data.isFavorite || false
+        };
+        
+        const historyKey = `plantHistory_${username}`;
+        let existingItems = [];
+        
+        try {
+          const existingData = localStorage.getItem(historyKey);
+          if (existingData) {
+            existingItems = JSON.parse(existingData);
+          }
+        } catch (parseError) {
+          console.error('Error parsing existing history:', parseError);
+        }
+        
+        // Remove any existing items with the same ID to avoid duplicates
+        existingItems = existingItems.filter((item: any) => item.id !== dataWithId.id);
+        
+        // Add the new item at the beginning
+        existingItems.unshift(dataWithId);
+        localStorage.setItem(historyKey, JSON.stringify(existingItems));
+        
+        return dataWithId;
+      }
     }
   } catch (error) {
     console.error('Error saving identification to history:', error);
@@ -110,53 +174,58 @@ export async function saveToHistory(username: string, data: any) {
 
 export async function getHistory(username: string) {
   try {
-    // Primary storage - server/database
+    // Primary storage - Firebase
     try {
-      const response = await fetch(`/api/users/${username}/history`);
-      
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      const history = await response.json();
-      console.log('Retrieved history from server database:', history.length, 'items');
+      const firebaseData = await getUserIdentificationHistory(username);
+      console.log('Retrieved history from Firebase:', firebaseData.length, 'items');
       
       // Update localStorage cache
       try {
         const historyKey = `plantHistory_${username}`;
-        localStorage.setItem(historyKey, JSON.stringify(history));
+        localStorage.setItem(historyKey, JSON.stringify(firebaseData));
       } catch (cacheError) {
         console.error('Failed to update localStorage cache:', cacheError);
       }
       
-      return history;
-    } catch (serverError) {
-      console.error('Failed to get history from server, trying localStorage:', serverError);
+      return firebaseData;
+    } catch (firebaseError) {
+      console.error('Failed to get history from Firebase, trying server database:', firebaseError);
       
-      // Secondary fallback - localStorage
-      const historyKey = `plantHistory_${username}`;
-      const localData = localStorage.getItem(historyKey);
-      
-      if (localData) {
-        const parsedData = JSON.parse(localData);
-        console.log('Retrieved history from localStorage:', parsedData.length, 'items');
-        return parsedData;
-      }
-      
-      // Last resort - Firebase
+      // Secondary fallback - server database
       try {
-        const firebaseData = await getUserIdentificationHistory(username);
-        if (firebaseData && firebaseData.length > 0) {
-          console.log('Retrieved history from Firebase:', firebaseData.length, 'items');
-          // Cache in localStorage
-          localStorage.setItem(historyKey, JSON.stringify(firebaseData));
-          return firebaseData;
+        const response = await fetch(`/api/users/${username}/history`);
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
-      } catch (firebaseError) {
-        console.error('Firebase history fetch error (returning empty array):', firebaseError);
+        
+        const history = await response.json();
+        console.log('Retrieved history from server database:', history.length, 'items');
+        
+        // Update localStorage cache
+        try {
+          const historyKey = `plantHistory_${username}`;
+          localStorage.setItem(historyKey, JSON.stringify(history));
+        } catch (cacheError) {
+          console.error('Failed to update localStorage cache:', cacheError);
+        }
+        
+        return history;
+      } catch (serverError) {
+        console.error('Failed to get history from server, trying localStorage:', serverError);
+        
+        // Last resort - localStorage
+        const historyKey = `plantHistory_${username}`;
+        const localData = localStorage.getItem(historyKey);
+        
+        if (localData) {
+          const parsedData = JSON.parse(localData);
+          console.log('Retrieved history from localStorage:', parsedData.length, 'items');
+          return parsedData;
+        }
+        
+        return [];
       }
-      
-      return [];
     }
   } catch (error) {
     console.error('Error getting user history:', error);
@@ -166,44 +235,42 @@ export async function getHistory(username: string) {
 
 export async function getFavorites(username: string) {
   try {
-    // Primary storage - server/database
+    // Primary storage - Firebase
     try {
-      const response = await fetch(`/api/users/${username}/favorites`);
+      const firebaseData = await getUserFavorites(username);
+      console.log('Retrieved favorites from Firebase:', firebaseData.length, 'items');
+      return firebaseData;
+    } catch (firebaseError) {
+      console.error('Failed to get favorites from Firebase, trying server database:', firebaseError);
       
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      const favorites = await response.json();
-      console.log('Retrieved favorites from server database:', favorites.length, 'items');
-      
-      return favorites;
-    } catch (serverError) {
-      console.error('Failed to get favorites from server, trying localStorage:', serverError);
-      
-      // Secondary fallback - localStorage
-      const historyKey = `plantHistory_${username}`;
-      const localData = localStorage.getItem(historyKey);
-      
-      if (localData) {
-        const allItems = JSON.parse(localData);
-        const favorites = allItems.filter((item: any) => item.isFavorite === true);
-        console.log('Retrieved favorites from localStorage:', favorites.length, 'items');
-        return favorites;
-      }
-      
-      // Last resort - Firebase
+      // Secondary fallback - server database
       try {
-        const firebaseData = await getUserFavorites(username);
-        if (firebaseData && firebaseData.length > 0) {
-          console.log('Retrieved favorites from Firebase:', firebaseData.length, 'items');
-          return firebaseData;
+        const response = await fetch(`/api/users/${username}/favorites`);
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
-      } catch (firebaseError) {
-        console.error('Firebase favorites fetch error (returning empty array):', firebaseError);
+        
+        const favorites = await response.json();
+        console.log('Retrieved favorites from server database:', favorites.length, 'items');
+        
+        return favorites;
+      } catch (serverError) {
+        console.error('Failed to get favorites from server, trying localStorage:', serverError);
+        
+        // Last resort - localStorage
+        const historyKey = `plantHistory_${username}`;
+        const localData = localStorage.getItem(historyKey);
+        
+        if (localData) {
+          const allItems = JSON.parse(localData);
+          const favorites = allItems.filter((item: any) => item.isFavorite === true);
+          console.log('Retrieved favorites from localStorage:', favorites.length, 'items');
+          return favorites;
+        }
+        
+        return [];
       }
-      
-      return [];
     }
   } catch (error) {
     console.error('Error getting user favorites:', error);
@@ -213,25 +280,10 @@ export async function getFavorites(username: string) {
 
 export async function toggleFavorite(username: string, identificationId: string, isFavorite: boolean) {
   try {
-    // Primary storage - server/database
+    // Primary storage - Firebase
     try {
-      const response = await fetch(`/api/users/${username}/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identificationId,
-          isFavorite
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('Updated favorite status in server database:', data);
+      const result = await toggleFavoriteFirebase(username, identificationId, isFavorite);
+      console.log('Updated favorite status in Firebase:', result);
       
       // Update localStorage cache
       try {
@@ -256,41 +308,104 @@ export async function toggleFavorite(username: string, identificationId: string,
         console.error('Failed to update localStorage cache:', cacheError);
       }
       
-      return data;
-    } catch (serverError) {
-      console.error('Server database update failed, trying Firebase fallback:', serverError);
-      
-      // Secondary fallback - try Firebase
+      // Secondary backup - server database
       try {
-        await toggleFavoriteFirebase(username, identificationId, isFavorite);
-      } catch (firebaseError) {
-        console.error('Firebase favorite toggle error, falling back to localStorage only:', firebaseError);
-      }
-      
-      // Last resort - localStorage only
-      try {
-        const historyKey = `plantHistory_${username}`;
-        const localData = localStorage.getItem(historyKey);
+        const response = await fetch(`/api/users/${username}/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            identificationId,
+            isFavorite
+          }),
+        });
         
-        if (localData) {
-          const existingHistory = JSON.parse(localData);
-          
-          // Update favorite status
-          const updatedHistory = existingHistory.map((item: any) => {
-            if (item.id === identificationId) {
-              return { ...item, isFavorite };
-            }
-            return item;
-          });
-          
-          // Save back to localStorage
-          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+        if (!response.ok) {
+          console.warn(`Server database backup returned ${response.status}: ${response.statusText}`);
+        } else {
+          console.log('Favorite status also backed up to server database');
         }
-      } catch (localStorageError) {
-        console.error('Failed to update localStorage:', localStorageError);
+      } catch (serverError) {
+        console.warn('Server database backup failed:', serverError);
       }
       
-      return { id: identificationId, isFavorite };
+      return result;
+    } catch (firebaseError) {
+      console.error('Firebase update failed, trying server database fallback:', firebaseError);
+      
+      // Fallback - server database
+      try {
+        const response = await fetch(`/api/users/${username}/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            identificationId,
+            isFavorite
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Updated favorite status in server database:', data);
+        
+        // Update localStorage cache
+        try {
+          const historyKey = `plantHistory_${username}`;
+          const localData = localStorage.getItem(historyKey);
+          
+          if (localData) {
+            const existingHistory = JSON.parse(localData);
+            
+            // Update favorite status
+            const updatedHistory = existingHistory.map((item: any) => {
+              if (item.id === identificationId) {
+                return { ...item, isFavorite };
+              }
+              return item;
+            });
+            
+            // Save back to localStorage
+            localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+          }
+        } catch (cacheError) {
+          console.error('Failed to update localStorage cache:', cacheError);
+        }
+        
+        return data;
+      } catch (serverError) {
+        console.error('Server database fallback also failed, using localStorage only:', serverError);
+        
+        // Last resort - localStorage only
+        try {
+          const historyKey = `plantHistory_${username}`;
+          const localData = localStorage.getItem(historyKey);
+          
+          if (localData) {
+            const existingHistory = JSON.parse(localData);
+            
+            // Update favorite status
+            const updatedHistory = existingHistory.map((item: any) => {
+              if (item.id === identificationId) {
+                return { ...item, isFavorite };
+              }
+              return item;
+            });
+            
+            // Save back to localStorage
+            localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+          }
+        } catch (localStorageError) {
+          console.error('Failed to update localStorage:', localStorageError);
+        }
+        
+        return { id: identificationId, isFavorite };
+      }
     }
   } catch (error) {
     console.error('Error toggling favorite status:', error);
@@ -300,21 +415,10 @@ export async function toggleFavorite(username: string, identificationId: string,
 
 export async function deleteIdentification(username: string, identificationId: string) {
   try {
-    // Primary storage - server/database
+    // Primary storage - Firebase
     try {
-      const response = await fetch(`/api/users/${username}/history/${identificationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('Deleted identification from server database:', data);
+      const result = await deleteIdentificationFirebase(username, identificationId);
+      console.log('Deleted identification in Firebase:', result);
       
       // Update localStorage cache
       try {
@@ -334,36 +438,86 @@ export async function deleteIdentification(username: string, identificationId: s
         console.error('Failed to update localStorage cache:', cacheError);
       }
       
-      return data;
-    } catch (serverError) {
-      console.error('Server database delete failed, trying Firebase fallback:', serverError);
-      
-      // Secondary fallback - try Firebase
+      // Secondary backup - server database
       try {
-        await deleteIdentificationFirebase(username, identificationId);
-      } catch (firebaseError) {
-        console.error('Firebase delete error, falling back to localStorage only:', firebaseError);
-      }
-      
-      // Last resort - localStorage only
-      try {
-        const historyKey = `plantHistory_${username}`;
-        const localData = localStorage.getItem(historyKey);
+        const response = await fetch(`/api/users/${username}/history/${identificationId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
         
-        if (localData) {
-          const existingHistory = JSON.parse(localData);
-          
-          // Filter out the item to delete
-          const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
-          
-          // Save back to localStorage
-          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+        if (!response.ok) {
+          console.warn(`Server database backup returned ${response.status}: ${response.statusText}`);
+        } else {
+          console.log('Deletion also backed up to server database');
         }
-      } catch (localStorageError) {
-        console.error('Failed to update localStorage:', localStorageError);
+      } catch (serverError) {
+        console.warn('Server database backup failed:', serverError);
       }
       
-      return { id: identificationId, deleted: true };
+      return result;
+    } catch (firebaseError) {
+      console.error('Firebase delete failed, trying server database fallback:', firebaseError);
+      
+      // Fallback - server database
+      try {
+        const response = await fetch(`/api/users/${username}/history/${identificationId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Deleted identification from server database:', data);
+        
+        // Update localStorage cache
+        try {
+          const historyKey = `plantHistory_${username}`;
+          const localData = localStorage.getItem(historyKey);
+          
+          if (localData) {
+            const existingHistory = JSON.parse(localData);
+            
+            // Filter out the item to delete
+            const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
+            
+            // Save back to localStorage
+            localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+          }
+        } catch (cacheError) {
+          console.error('Failed to update localStorage cache:', cacheError);
+        }
+        
+        return data;
+      } catch (serverError) {
+        console.error('Server database fallback also failed, using localStorage only:', serverError);
+        
+        // Last resort - localStorage only
+        try {
+          const historyKey = `plantHistory_${username}`;
+          const localData = localStorage.getItem(historyKey);
+          
+          if (localData) {
+            const existingHistory = JSON.parse(localData);
+            
+            // Filter out the item to delete
+            const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
+            
+            // Save back to localStorage
+            localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+          }
+        } catch (localStorageError) {
+          console.error('Failed to update localStorage:', localStorageError);
+        }
+        
+        return { id: identificationId, deleted: true };
+      }
     }
   } catch (error) {
     console.error('Error deleting identification:', error);
@@ -402,38 +556,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear guest storage when a user logs in
       localStorage.removeItem('plantHistory_guest');
       
-      // Primary - database/server login
+      // Primary - Firebase login/authentication
       try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ username: username.trim() }),
-        });
+        const existingUser = await getUser(username.trim());
         
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        if (!existingUser) {
+          // Create a new user if they don't exist
+          console.log(`Creating new user in Firebase: ${username.trim()}`);
+          await createUser(username.trim());
+        } else {
+          // Update last login time for existing user
+          console.log(`Updating last login for existing user: ${username.trim()}`);
+          await updateUserLastLogin(username.trim());
         }
+      } catch (firebaseError) {
+        console.error('Firebase error during login, trying server fallback:', firebaseError);
         
-        const data = await response.json();
-        console.log('User logged in via server database:', data);
-      } catch (serverError) {
-        console.error('Server database login failed, trying Firebase fallback:', serverError);
-        
-        // Secondary fallback - try Firebase
+        // Secondary fallback - server/database login
         try {
-          const existingUser = await getUser(username.trim());
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username: username.trim() }),
+          });
           
-          if (!existingUser) {
-            // Create a new user if they don't exist
-            await createUser(username.trim());
-          } else {
-            // Update last login time for existing user
-            await updateUserLastLogin(username.trim());
+          if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
           }
-        } catch (firebaseError) {
-          console.error('Firebase error during login, continuing with local storage only:', firebaseError);
+          
+          const data = await response.json();
+          console.log('User logged in via server database:', data);
+        } catch (serverError) {
+          console.error('Server database login also failed, using localStorage only:', serverError);
         }
       }
       
