@@ -207,8 +207,7 @@ export async function getUserFavorites(username: string) {
     const favoritesCollection = getUserFavoritesCollection(username);
     const favoritesQuery = query(
       favoritesCollection,
-      where("deleted", "!=", true),
-      orderBy("createdAt", "desc")
+      where("deleted", "!=", true)
     );
     
     const favoritesSnapshot = await getDocs(favoritesQuery);
@@ -227,8 +226,15 @@ export async function getUserFavorites(username: string) {
         };
       });
       
-      console.log(`Retrieved ${favorites.length} favorites from dedicated collection for user ${username}`);
-      return favorites;
+      // Sort manually by createdAt (newest first)
+      const sortedFavorites = favorites.sort((a, b) => {
+        const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return bDate.getTime() - aDate.getTime();
+      });
+      
+      console.log(`Retrieved ${sortedFavorites.length} favorites from dedicated collection for user ${username}`);
+      return sortedFavorites;
     }
     
     // Fallback to filtering history for favorites
@@ -236,8 +242,7 @@ export async function getUserFavorites(username: string) {
     const historyQuery = query(
       historyCollection,
       where("isFavorite", "==", true),
-      where("deleted", "!=", true),
-      orderBy("createdAt", "desc")
+      where("deleted", "!=", true)
     );
     
     const historySnapshot = await getDocs(historyQuery);
@@ -253,8 +258,15 @@ export async function getUserFavorites(username: string) {
       };
     });
     
-    console.log(`Retrieved ${favorites.length} favorites from history for user ${username}`);
-    return favorites;
+    // Sort manually by createdAt (newest first)
+    const sortedFavorites = favorites.sort((a, b) => {
+      const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return bDate.getTime() - aDate.getTime();
+    });
+    
+    console.log(`Retrieved ${sortedFavorites.length} favorites from history for user ${username}`);
+    return sortedFavorites;
   } catch (error) {
     console.error('Error getting user favorites:', error);
     // Return an empty array instead of throwing to handle Firebase permission issues
