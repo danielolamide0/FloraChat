@@ -99,7 +99,7 @@ export default function About() {
           <h2 className="text-2xl font-heading font-semibold text-primary mb-4">Contact Us</h2>
           <p>
             Have questions or feedback about FloraChat? We'd love to hear from you! 
-            Contact us at <a href="mailto:info@florachat.synaptideai.com" className="text-primary hover:underline">info@florachat.synaptideai.com</a>.
+            Contact us at <a href="mailto:danielolamid3@gmail.com" className="text-primary hover:underline">danielolamid3@gmail.com</a>.
           </p>
         </CardContent>
       </Card>

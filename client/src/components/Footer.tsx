@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Leaf, Twitter, Github, Linkedin } from "lucide-react";
+import synaptideLogo from "../assets/synaptide-logo.jpeg";
 
 export default function Footer() {
   return (
@@ -8,7 +9,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-8">
           <div className="col-span-2 md:col-span-1">
             <h5 className="font-heading font-semibold mb-4 flex items-center">
-              <Leaf className="h-5 w-5 text-primary mr-2" />
+              <img src={synaptideLogo} alt="Synaptide Logo" className="h-6 w-6 rounded-full object-cover mr-2" />
               <div className="flex flex-col">
                 <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">FloraChat</span>
                 <span className="text-xs text-gray-500 -mt-1">by Synaptide AI</span>
@@ -75,7 +76,7 @@ export default function Footer() {
               </a>
             </div>
             <p className="text-sm text-neutral-dark">
-              Contact us: <a href="mailto:info@florachat.synaptideai.com" className="text-primary">info@florachat.synaptideai.com</a>
+              Contact us: <a href="mailto:danielolamid3@gmail.com" className="text-primary">danielolamid3@gmail.com</a>
             </p>
           </div>
         </div>

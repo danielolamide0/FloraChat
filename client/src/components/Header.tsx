@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import synaptideLogo from "@assets/synaptide-logo.jpeg";
+import synaptideLogo from "../assets/synaptide-logo.jpeg";
 
 export default function Header() {
   const [location] = useLocation();
@@ -34,8 +34,8 @@ export default function Header() {
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <div className="text-primary mr-2">
-              <Leaf className="h-8 w-8" />
+            <div className="mr-2">
+              <img src={synaptideLogo} alt="Synaptide Logo" className="h-10 w-10 rounded-full object-cover" />
             </div>
             <div className="flex flex-col">
               <Link href="/" className="text-2xl md:text-3xl font-heading font-bold text-primary bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
