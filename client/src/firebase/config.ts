@@ -3,11 +3,12 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Firebase configuration
+// Note: Using 'spidey-78a0e' as project ID from the service account
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+  authDomain: 'spidey-78a0e.firebaseapp.com',
+  projectId: 'spidey-78a0e',
+  storageBucket: 'spidey-78a0e.appspot.com',
   messagingSenderId: "000000000000", // Not needed for our use case
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
