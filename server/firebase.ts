@@ -40,6 +40,26 @@ try {
   console.error("Error initializing Firebase:", error);
 }
 
+// Root collection for FloraChat
+const floraChatCollection = collection(db, "FloraChat");
+
+// Helper functions for Firebase access
+export const getUsersCollection = () => {
+  return collection(floraChatCollection, "Users");
+};
+
+export const getUserDoc = (username: string) => {
+  return doc(getUsersCollection(), username);
+};
+
+export const getUserHistoryCollection = (username: string) => {
+  return collection(getUserDoc(username), "history");
+};
+
+export const getUserFavoritesCollection = (username: string) => {
+  return collection(getUserDoc(username), "favorites");
+};
+
 /**
  * Upload image to Firebase Storage
  * @param imageBuffer - The image buffer to upload
@@ -111,12 +131,21 @@ export async function getUser(username: string) {
   }
 
   try {
-    const userRef = doc(db, 'FloraChat/Users', username);
+    const userRef = getUserDoc(username);
     const userSnap = await getDoc(userRef);
     
     if (userSnap.exists()) {
-      return userSnap.data();
+      const userData = userSnap.data();
+      console.log(`Found existing user in Firebase: ${username}`);
+      return {
+        ...userData,
+        createdAt: userData.createdAt instanceof Timestamp ? 
+          userData.createdAt.toDate() : userData.createdAt,
+        lastLogin: userData.lastLogin instanceof Timestamp ? 
+          userData.lastLogin.toDate() : userData.lastLogin
+      };
     } else {
+      console.log(`No user found in Firebase: ${username}`);
       return null;
     }
   } catch (error) {
@@ -132,15 +161,28 @@ export async function createUser(username: string) {
   }
 
   try {
-    // Create the FloraChat/Users collection if it doesn't exist
-    const userRef = doc(db, 'FloraChat/Users', username);
+    // Check if user already exists
+    const existingUser = await getUser(username);
+    if (existingUser) {
+      console.log(`User ${username} already exists, returning existing user`);
+      // Update lastLogin
+      await updateUserLastLogin(username);
+      return existingUser;
+    }
+    
+    // Create new user using username as document ID
+    const now = new Date();
     const userData = {
       username,
-      createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp()
+      name: username, // For compatibility
+      createdAt: now,
+      lastLogin: now
     };
     
+    // Create the user in the FloraChat/Users collection
+    const userRef = getUserDoc(username);
     await setDoc(userRef, userData);
+    
     console.log(`Created new user in Firebase: ${username}`);
     return userData;
   } catch (error) {
@@ -156,9 +198,9 @@ export async function updateUserLastLogin(username: string) {
   }
 
   try {
-    const userRef = doc(db, 'FloraChat/Users', username);
+    const userRef = getUserDoc(username);
     await updateDoc(userRef, {
-      lastLogin: serverTimestamp()
+      lastLogin: new Date()
     });
     console.log(`Updated last login for user: ${username}`);
   } catch (error) {
@@ -175,25 +217,30 @@ export async function saveIdentificationToHistory(username: string, identificati
   }
 
   try {
-    // Add a timestamp to the identification data
-    const identificationWithTimestamp = {
+    // Ensure we have a clientId for consistent reference
+    const clientId = identificationData.clientId || `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    // Add necessary metadata to the identification
+    const identificationWithMetadata = {
       ...identificationData,
-      createdAt: serverTimestamp(),
-      isFavorite: false, // Default to not a favorite
-      username // Store the username with each identification
+      clientId,
+      createdAt: new Date(),
+      isFavorite: identificationData.isFavorite || false,
+      username, // Store the username with each identification
+      timestamp: new Date() // For compatibility with timestamp sorting
     };
     
-    // Create a unique ID for this identification
-    const identificationId = identificationData.clientId || `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    // Get the user's history collection
+    const historyCollection = getUserHistoryCollection(username);
     
-    // Save to the user's history collection
-    const identificationRef = doc(db, `FloraChat/Users/${username}/history`, identificationId);
-    await setDoc(identificationRef, identificationWithTimestamp);
+    // We'll use the clientId as the document ID for easy retrieval
+    const identificationRef = doc(historyCollection, clientId);
+    await setDoc(identificationRef, identificationWithMetadata);
     
-    console.log(`Saved identification to history for user ${username}, ID: ${identificationId}`);
+    console.log(`Saved identification to history for user ${username}, ID: ${clientId}`);
     return {
-      id: identificationId,
-      ...identificationWithTimestamp
+      id: clientId,
+      ...identificationWithMetadata
     };
   } catch (error) {
     console.error('Error saving identification to history:', error);
@@ -208,24 +255,33 @@ export async function getUserIdentificationHistory(username: string) {
   }
 
   try {
-    const identificationsRef = collection(db, `FloraChat/Users/${username}/history`);
-    const q = query(identificationsRef, where("deleted", "!=", true));
-    const identificationSnapshot = await getDocs(q);
+    // Get the user's history collection
+    const historyCollection = getUserHistoryCollection(username);
     
-    const identifications = identificationSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Query for non-deleted items, ordered by timestamp (newest first)
+    const q = query(
+      historyCollection,
+      where("deleted", "!=", true),
+      orderBy("createdAt", "desc")
+    );
     
-    // Sort by createdAt timestamp in descending order (newest first)
-    const sortedIdentifications = identifications.sort((a, b) => {
-      const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
-      const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
-      return bTime - aTime;
+    const querySnapshot = await getDocs(q);
+    
+    // Process the query results
+    const identifications = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Ensure createdAt is a JavaScript Date
+        createdAt: data.createdAt instanceof Timestamp ? 
+          data.createdAt.toDate() : 
+          data.createdAt
+      };
     });
     
-    console.log(`Retrieved ${sortedIdentifications.length} history items for user ${username}`);
-    return sortedIdentifications;
+    console.log(`Retrieved ${identifications.length} history items for user ${username}`);
+    return identifications;
   } catch (error) {
     console.error('Error getting user identification history:', error);
     throw error;
@@ -239,31 +295,58 @@ export async function getUserFavorites(username: string) {
   }
 
   try {
-    // First try to get from the dedicated favorites collection
-    const favoritesRef = collection(db, `FloraChat/Users/${username}/favorites`);
-    let favoritesSnapshot = await getDocs(favoritesRef);
+    // First try to get from dedicated favorites collection
+    const favoritesCollection = getUserFavoritesCollection(username);
+    const favoritesQuery = query(
+      favoritesCollection,
+      where("deleted", "!=", true),
+      orderBy("createdAt", "desc")
+    );
     
-    // If no dedicated favorites, fall back to filtering history
-    if (favoritesSnapshot.empty) {
-      const historyRef = collection(db, `FloraChat/Users/${username}/history`);
-      const q = query(historyRef, where("isFavorite", "==", true), where("deleted", "!=", true));
-      favoritesSnapshot = await getDocs(q);
+    const favoritesSnapshot = await getDocs(favoritesQuery);
+    
+    // If we have favorites in the dedicated collection, use those
+    if (!favoritesSnapshot.empty) {
+      const favorites = favoritesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Ensure createdAt is a JavaScript Date
+          createdAt: data.createdAt instanceof Timestamp ? 
+            data.createdAt.toDate() : 
+            data.createdAt
+        };
+      });
+      
+      console.log(`Retrieved ${favorites.length} favorites from dedicated collection for user ${username}`);
+      return favorites;
     }
     
-    const favorites = favoritesSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Fallback to filtering history for favorites
+    const historyCollection = getUserHistoryCollection(username);
+    const historyQuery = query(
+      historyCollection,
+      where("isFavorite", "==", true),
+      where("deleted", "!=", true),
+      orderBy("createdAt", "desc")
+    );
     
-    // Sort by createdAt timestamp in descending order (newest first)
-    const sortedFavorites = favorites.sort((a, b) => {
-      const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
-      const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
-      return bTime - aTime;
+    const historySnapshot = await getDocs(historyQuery);
+    const favorites = historySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Ensure createdAt is a JavaScript Date
+        createdAt: data.createdAt instanceof Timestamp ? 
+          data.createdAt.toDate() : 
+          data.createdAt
+      };
     });
     
-    console.log(`Retrieved ${sortedFavorites.length} favorites for user ${username}`);
-    return sortedFavorites;
+    console.log(`Retrieved ${favorites.length} favorites from history for user ${username}`);
+    return favorites;
   } catch (error) {
     console.error('Error getting user favorites:', error);
     throw error;
@@ -277,33 +360,45 @@ export async function toggleFavorite(username: string, identificationId: string,
   }
 
   try {
-    // Update in history collection
-    const historyRef = doc(db, `FloraChat/Users/${username}/history`, identificationId);
-    await updateDoc(historyRef, {
-      isFavorite
-    });
+    // First, update the history item
+    const historyRef = doc(getUserHistoryCollection(username), identificationId);
+    const historySnap = await getDoc(historyRef);
     
-    // If marking as favorite, copy to favorites collection
+    if (!historySnap.exists()) {
+      throw new Error(`Identification ${identificationId} not found for user ${username}`);
+    }
+    
+    // Update the favorite status in history
+    await updateDoc(historyRef, { isFavorite });
+    
+    // If setting as favorite, also add to the favorites collection
     if (isFavorite) {
-      const historySnap = await getDoc(historyRef);
-      if (historySnap.exists()) {
-        const favoriteRef = doc(db, `FloraChat/Users/${username}/favorites`, identificationId);
-        await setDoc(favoriteRef, {
-          ...historySnap.data(),
-          isFavorite: true
-        });
-      }
+      const favoriteData = {
+        ...historySnap.data(),
+        isFavorite: true
+      };
+      
+      const favoriteRef = doc(getUserFavoritesCollection(username), identificationId);
+      await setDoc(favoriteRef, favoriteData);
+      console.log(`Added identification ${identificationId} to favorites for user ${username}`);
     } else {
-      // If removing from favorites, delete from favorites collection
-      const favoriteRef = doc(db, `FloraChat/Users/${username}/favorites`, identificationId);
+      // If removing from favorites, mark as deleted in the favorites collection
+      const favoriteRef = doc(getUserFavoritesCollection(username), identificationId);
       const favoriteSnap = await getDoc(favoriteRef);
+      
       if (favoriteSnap.exists()) {
-        await updateDoc(favoriteRef, { deleted: true });
+        await updateDoc(favoriteRef, { 
+          deleted: true,
+          isFavorite: false
+        });
+        console.log(`Removed identification ${identificationId} from favorites for user ${username}`);
       }
     }
     
-    console.log(`Toggled favorite status for user ${username}, ID: ${identificationId} to ${isFavorite}`);
-    return { id: identificationId, isFavorite };
+    return { 
+      id: identificationId, 
+      isFavorite 
+    };
   } catch (error) {
     console.error('Error toggling favorite status:', error);
     throw error;
@@ -317,19 +412,30 @@ export async function deleteIdentification(username: string, identificationId: s
   }
 
   try {
-    // Mark as deleted in history collection
-    const historyRef = doc(db, `FloraChat/Users/${username}/history`, identificationId);
-    await updateDoc(historyRef, { deleted: true });
+    // Mark as deleted in history collection (we don't actually delete the document)
+    const historyRef = doc(getUserHistoryCollection(username), identificationId);
+    await updateDoc(historyRef, { 
+      deleted: true,
+      isFavorite: false // Automatically remove from favorites when deleted
+    });
     
     // Also mark as deleted in favorites collection if it exists there
-    const favoriteRef = doc(db, `FloraChat/Users/${username}/favorites`, identificationId);
+    const favoriteRef = doc(getUserFavoritesCollection(username), identificationId);
     const favoriteSnap = await getDoc(favoriteRef);
+    
     if (favoriteSnap.exists()) {
-      await updateDoc(favoriteRef, { deleted: true });
+      await updateDoc(favoriteRef, { 
+        deleted: true,
+        isFavorite: false
+      });
     }
     
-    console.log(`Marked identification as deleted for user ${username}, ID: ${identificationId}`);
-    return { success: true, id: identificationId };
+    console.log(`Marked identification ${identificationId} as deleted for user ${username}`);
+    return { 
+      success: true, 
+      id: identificationId, 
+      deleted: true 
+    };
   } catch (error) {
     console.error('Error deleting identification:', error);
     throw error;
