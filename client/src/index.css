@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  --font-family: 'Space Grotesk', sans-serif;
   --background: 0 0% 100%;
   --foreground: 20 14.3% 4.1%;
   --muted: 60 4.8% 95.9%;
@@ -85,7 +86,8 @@
   }
 
   body {
-    @apply font-sans antialiased text-foreground;
+    @apply antialiased text-foreground;
+    font-family: 'Space Grotesk', sans-serif;
     background-color: #f9fafb;
     position: relative;
     min-height: 100vh;
@@ -93,11 +95,12 @@
 }
 
 .font-heading {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
 }
 
 .font-body {
-  font-family: 'Open Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
 }
 
 .upload-area {

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import synaptideLogo from "@assets/synaptide-logo.jpeg";
 
 export default function Header() {
   const [location] = useLocation();
