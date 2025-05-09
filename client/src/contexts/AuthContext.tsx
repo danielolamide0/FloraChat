@@ -16,13 +16,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Export the data service functions for use elsewhere in the app
-export const saveToHistory = dataService.saveToHistory.bind(dataService);
-export const getHistory = dataService.getHistory.bind(dataService);
-export const getFavorites = dataService.getFavorites.bind(dataService);
-export const toggleFavorite = dataService.toggleFavorite.bind(dataService);
-export const deleteIdentification = dataService.deleteIdentification.bind(dataService);
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);

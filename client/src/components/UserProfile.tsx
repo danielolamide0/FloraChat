@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useAuth, getHistory, getFavorites, toggleFavorite, deleteIdentification } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { HistoryIcon, StarIcon, LogOut, RefreshCw, Trash2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { IdentificationData } from '@/services/DataService';
+import { dataService, IdentificationData } from '@/services/DataService';
 
 // Additional type definitions (if needed)
 interface LocalIdentificationData {
@@ -44,7 +44,7 @@ export default function UserProfile() {
     setIsLoadingHistory(true);
     try {
       // Use the DataService to get history
-      const data = await getHistory(user.username);
+      const data = await dataService.getHistory(user.username);
       setHistory(data);
     } catch (error) {
       console.error('Error fetching history:', error);
@@ -64,7 +64,7 @@ export default function UserProfile() {
     setIsLoadingFavorites(true);
     try {
       // Use the DataService to get favorites
-      const data = await getFavorites(user.username);
+      const data = await dataService.getFavorites(user.username);
       setFavorites(data);
     } catch (error) {
       console.error('Error fetching favorites:', error);
@@ -83,7 +83,7 @@ export default function UserProfile() {
     
     try {
       // Use the DataService to toggle favorite
-      const result = await toggleFavorite(user.username, id, !isFavorite);
+      const result = await dataService.toggleFavorite(user.username, id, !isFavorite);
       
       // Update local state
       if (activeTab === 'history') {
@@ -125,7 +125,7 @@ export default function UserProfile() {
     
     try {
       // Use the DataService to delete identification
-      const result = await deleteIdentification(user.username, id);
+      const result = await dataService.deleteIdentification(user.username, id);
       
       // Update local state
       if (activeTab === 'history') {

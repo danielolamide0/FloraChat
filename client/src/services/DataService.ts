@@ -34,7 +34,7 @@ interface DeleteResponse {
  * Service class for handling all data operations in the application
  * Supports Firebase as primary storage with database and localStorage fallbacks
  */
-class DataService {
+export class DataService {
   /**
    * Save plant identification to user history
    */
@@ -202,7 +202,8 @@ class DataService {
           console.error('Failed to update localStorage cache:', cacheError);
         }
         
-        return firebaseData;
+        // Ensure the data matches our IdentificationData interface
+        return firebaseData as IdentificationData[];
       } catch (firebaseError) {
         console.error('Failed to get history from Firebase, trying server database:', firebaseError);
         
@@ -257,7 +258,7 @@ class DataService {
       try {
         const firebaseData = await firebaseUser.getUserFavorites(username);
         console.log('Retrieved favorites from Firebase:', firebaseData.length, 'items');
-        return firebaseData;
+        return firebaseData as IdentificationData[];
       } catch (firebaseError) {
         console.error('Failed to get favorites from Firebase, trying server database:', firebaseError);
         
@@ -595,5 +596,5 @@ class DataService {
   }
 }
 
-// Export a singleton instance
+// Create and export a singleton instance of the DataService
 export const dataService = new DataService();
