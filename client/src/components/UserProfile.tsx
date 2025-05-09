@@ -41,11 +41,8 @@ export default function UserProfile() {
     
     setIsLoadingHistory(true);
     try {
-      const response = await fetch(`/api/users/${user.username}/history`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch history');
-      }
-      const data = await response.json();
+      // Use the DataService to get history
+      const data = await getHistory(user.username);
       setHistory(data);
     } catch (error) {
       console.error('Error fetching history:', error);
