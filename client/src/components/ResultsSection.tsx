@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Star, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PlantIdentificationResult } from "@shared/schema";
-import { useAuth } from "@/contexts/AuthContext";
-import { dataService } from "@/services/DataService";
+import { useAuth, saveToHistory, toggleFavorite } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 
 interface ResultsSectionProps {

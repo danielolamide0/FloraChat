@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import { HistoryIcon, StarIcon, LogOut, RefreshCw, Trash2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { dataService, IdentificationData } from '@/services/DataService';
 
-// Additional type definitions (if needed)
-interface LocalIdentificationData {
+interface Identification {
   id: string;
   scientificName: string;
   commonName: string;
@@ -33,8 +31,8 @@ export default function UserProfile() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('history');
-  const [history, setHistory] = useState<any[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
+  const [history, setHistory] = useState<Identification[]>([]);
+  const [favorites, setFavorites] = useState<Identification[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
 
@@ -43,8 +41,11 @@ export default function UserProfile() {
     
     setIsLoadingHistory(true);
     try {
-      // Use the DataService to get history
-      const data = await dataService.getHistory(user.username);
+      const response = await fetch(`/api/users/${user.username}/history`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch history');
+      }
+      const data = await response.json();
       setHistory(data);
     } catch (error) {
       console.error('Error fetching history:', error);
@@ -63,8 +64,11 @@ export default function UserProfile() {
     
     setIsLoadingFavorites(true);
     try {
-      // Use the DataService to get favorites
-      const data = await dataService.getFavorites(user.username);
+      const response = await fetch(`/api/users/${user.username}/favorites`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch favorites');
+      }
+      const data = await response.json();
       setFavorites(data);
     } catch (error) {
       console.error('Error fetching favorites:', error);
@@ -82,8 +86,17 @@ export default function UserProfile() {
     if (!user) return;
     
     try {
-      // Use the DataService to toggle favorite
-      const result = await dataService.toggleFavorite(user.username, id, !isFavorite);
+      const response = await fetch(`/api/users/${user.username}/favorites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identificationId: id, isFavorite: !isFavorite }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
       
       // Update local state
       if (activeTab === 'history') {
@@ -124,8 +137,13 @@ export default function UserProfile() {
     if (!user) return;
     
     try {
-      // Use the DataService to delete identification
-      const result = await dataService.deleteIdentification(user.username, id);
+      const response = await fetch(`/api/users/${user.username}/history/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete identification');
+      }
       
       // Update local state
       if (activeTab === 'history') {
