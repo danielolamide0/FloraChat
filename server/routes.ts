@@ -838,6 +838,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch plant identifications" });
     }
   });
+  
+  // Test route for Firebase connection
+  app.get("/api/test-firebase", async (_req: Request, res: Response) => {
+    try {
+      // Print Firebase configuration for debugging
+      console.log("Firebase Configuration:");
+      console.log("API Key exists:", !!process.env.FIREBASE_API_KEY);
+      console.log("Project ID:", process.env.FIREBASE_PROJECT_ID);
+      console.log("App ID exists:", !!process.env.FIREBASE_APP_ID);
+      console.log("Storage Bucket:", process.env.FIREBASE_STORAGE_BUCKET);
+      
+      // Test creating a test document
+      const testUsername = "test-user-" + Date.now();
+      
+      // Create test user with our existing Firebase functions
+      console.log("Attempting to create test user in Firebase...");
+      const user = await createUser(testUsername);
+      
+      console.log("Successfully wrote to Firebase:", user);
+      res.json({ 
+        success: true, 
+        message: "Firebase connection successful",
+        testUser: testUsername
+      });
+    } catch (error) {
+      console.error("Error testing Firebase connection:", error);
+      res.status(500).json({ 
+        error: "Failed to connect to Firebase", 
+        details: error.message,
+        stack: error.stack
+      });
+    }
+  });
 
   // Get a specific plant identification
   app.get("/api/identifications/:id", async (req: Request, res: Response) => {
