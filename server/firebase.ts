@@ -50,20 +50,33 @@ try {
 }
 
 // Helper functions for Firebase access
+// Using a simpler, flatter structure that's less likely to have permission issues
 export const getUsersCollection = () => {
-  return collection(db, "FloraChat", "data", "Users");
+  return collection(db, "users");
 };
 
 export const getUserDoc = (username: string) => {
-  return doc(db, "FloraChat", "data", "Users", username);
+  return doc(db, "users", username);
 };
 
 export const getUserHistoryCollection = (username: string) => {
-  return collection(db, "FloraChat", "data", "Users", username, "history");
+  // Instead of nesting, we'll use a flat structure with userID in the document
+  return collection(db, "history");
+};
+
+export const getUserHistoryItems = async (username: string) => {
+  const historyRef = collection(db, "history");
+  return await getDocs(query(historyRef, where("username", "==", username)));
 };
 
 export const getUserFavoritesCollection = (username: string) => {
-  return collection(db, "FloraChat", "data", "Users", username, "favorites");
+  // Instead of nesting, we'll use a flat structure with userID in the document
+  return collection(db, "favorites");
+};
+
+export const getUserFavoriteItems = async (username: string) => {
+  const favoritesRef = collection(db, "favorites");
+  return await getDocs(query(favoritesRef, where("username", "==", username)));
 };
 
 /**
@@ -236,10 +249,8 @@ export async function saveIdentificationToHistory(username: string, identificati
       timestamp: new Date() // For compatibility with timestamp sorting
     };
     
-    // Get the user's history collection
-    const historyCollection = getUserHistoryCollection(username);
-    
-    // We'll use the clientId as the document ID for easy retrieval
+    // Store the identification in the history collection with clientId as document ID
+    const historyCollection = collection(db, "history");
     const identificationRef = doc(historyCollection, clientId);
     await setDoc(identificationRef, identificationWithMetadata);
     
@@ -261,17 +272,15 @@ export async function getUserIdentificationHistory(username: string) {
   }
 
   try {
-    // Get the user's history collection
-    const historyCollection = getUserHistoryCollection(username);
-    
-    // Query for non-deleted items, ordered by timestamp (newest first)
+    // Get the history collection and filter by username
+    const historyRef = collection(db, "history");
     const q = query(
-      historyCollection,
+      historyRef,
+      where("username", "==", username),
       where("deleted", "!=", true)
     );
     
     // Note: We'll sort manually after fetching since there's an issue with orderBy
-    
     const querySnapshot = await getDocs(q);
     
     // Process the query results
@@ -309,10 +318,11 @@ export async function getUserFavorites(username: string) {
   }
 
   try {
-    // First try to get from dedicated favorites collection
-    const favoritesCollection = getUserFavoritesCollection(username);
+    // Get the favorites collection and filter by username
+    const favoritesRef = collection(db, "favorites");
     const favoritesQuery = query(
-      favoritesCollection,
+      favoritesRef,
+      where("username", "==", username),
       where("deleted", "!=", true)
     );
     
@@ -344,9 +354,10 @@ export async function getUserFavorites(username: string) {
     }
     
     // Fallback to filtering history for favorites
-    const historyCollection = getUserHistoryCollection(username);
+    const historyRef = collection(db, "history");
     const historyQuery = query(
-      historyCollection,
+      historyRef,
+      where("username", "==", username),
       where("isFavorite", "==", true),
       where("deleted", "!=", true)
     );
@@ -387,11 +398,17 @@ export async function toggleFavorite(username: string, identificationId: string,
 
   try {
     // First, update the history item
-    const historyRef = doc(getUserHistoryCollection(username), identificationId);
+    const historyRef = doc(collection(db, "history"), identificationId);
     const historySnap = await getDoc(historyRef);
     
     if (!historySnap.exists()) {
       throw new Error(`Identification ${identificationId} not found for user ${username}`);
+    }
+    
+    // Make sure this history item belongs to the user
+    const historyData = historySnap.data();
+    if (historyData.username !== username) {
+      throw new Error(`Identification ${identificationId} does not belong to user ${username}`);
     }
     
     // Update the favorite status in history
@@ -400,16 +417,16 @@ export async function toggleFavorite(username: string, identificationId: string,
     // If setting as favorite, also add to the favorites collection
     if (isFavorite) {
       const favoriteData = {
-        ...historySnap.data(),
+        ...historyData,
         isFavorite: true
       };
       
-      const favoriteRef = doc(getUserFavoritesCollection(username), identificationId);
+      const favoriteRef = doc(collection(db, "favorites"), identificationId);
       await setDoc(favoriteRef, favoriteData);
       console.log(`Added identification ${identificationId} to favorites for user ${username}`);
     } else {
       // If removing from favorites, mark as deleted in the favorites collection
-      const favoriteRef = doc(getUserFavoritesCollection(username), identificationId);
+      const favoriteRef = doc(collection(db, "favorites"), identificationId);
       const favoriteSnap = await getDoc(favoriteRef);
       
       if (favoriteSnap.exists()) {
@@ -439,14 +456,26 @@ export async function deleteIdentification(username: string, identificationId: s
 
   try {
     // Mark as deleted in history collection (we don't actually delete the document)
-    const historyRef = doc(getUserHistoryCollection(username), identificationId);
+    const historyRef = doc(collection(db, "history"), identificationId);
+    const historySnap = await getDoc(historyRef);
+    
+    if (!historySnap.exists()) {
+      throw new Error(`Identification ${identificationId} not found`);
+    }
+    
+    // Make sure this history item belongs to the user
+    const historyData = historySnap.data();
+    if (historyData.username !== username) {
+      throw new Error(`Identification ${identificationId} does not belong to user ${username}`);
+    }
+    
     await updateDoc(historyRef, { 
       deleted: true,
       isFavorite: false // Automatically remove from favorites when deleted
     });
     
     // Also mark as deleted in favorites collection if it exists there
-    const favoriteRef = doc(getUserFavoritesCollection(username), identificationId);
+    const favoriteRef = doc(collection(db, "favorites"), identificationId);
     const favoriteSnap = await getDoc(favoriteRef);
     
     if (favoriteSnap.exists()) {
