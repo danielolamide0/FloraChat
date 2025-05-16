@@ -325,110 +325,60 @@ export async function toggleFavorite(username: string, identificationId: string,
 
 export async function deleteIdentification(username: string, identificationId: string) {
   try {
-    // Primary storage - Firebase
-    try {
-      const result = await deleteIdentificationFirebase(username, identificationId);
-      console.log('Deleted identification in Firebase:', result);
+    // Primary storage - localStorage
+    const historyKey = `plantHistory_${username}`;
+    const localData = localStorage.getItem(historyKey);
+    
+    if (localData) {
+      const existingHistory = JSON.parse(localData);
       
-      // Update localStorage cache
-      try {
-        const historyKey = `plantHistory_${username}`;
-        const localData = localStorage.getItem(historyKey);
+      // Check if item exists
+      const itemExists = existingHistory.some((item: any) => item.id === identificationId);
+      
+      if (!itemExists) {
+        console.warn(`Item with ID ${identificationId} not found in localStorage`);
+      } else {
+        // Filter out the item to delete
+        const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
         
-        if (localData) {
-          const existingHistory = JSON.parse(localData);
-          
-          // Filter out the item to delete
-          const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
-          
-          // Save back to localStorage
-          localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-        }
-      } catch (cacheError) {
-        console.error('Failed to update localStorage cache:', cacheError);
+        // Save back to localStorage
+        localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+        console.log(`Deleted identification from localStorage: ${identificationId}`);
       }
-      
-      // Secondary backup - server database
-      try {
-        const response = await fetch(`/api/users/${username}/history/${identificationId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          console.warn(`Server database backup returned ${response.status}: ${response.statusText}`);
-        } else {
-          console.log('Deletion also backed up to server database');
-        }
-      } catch (serverError) {
-        console.warn('Server database backup failed:', serverError);
-      }
-      
-      return result;
-    } catch (firebaseError) {
-      console.error('Firebase delete failed, trying server database fallback:', firebaseError);
-      
-      // Fallback - server database
-      try {
-        const response = await fetch(`/api/users/${username}/history/${identificationId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Deleted identification from server database:', data);
-        
-        // Update localStorage cache
-        try {
-          const historyKey = `plantHistory_${username}`;
-          const localData = localStorage.getItem(historyKey);
-          
-          if (localData) {
-            const existingHistory = JSON.parse(localData);
-            
-            // Filter out the item to delete
-            const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
-            
-            // Save back to localStorage
-            localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-          }
-        } catch (cacheError) {
-          console.error('Failed to update localStorage cache:', cacheError);
-        }
-        
-        return data;
-      } catch (serverError) {
-        console.error('Server database fallback also failed, using localStorage only:', serverError);
-        
-        // Last resort - localStorage only
-        try {
-          const historyKey = `plantHistory_${username}`;
-          const localData = localStorage.getItem(historyKey);
-          
-          if (localData) {
-            const existingHistory = JSON.parse(localData);
-            
-            // Filter out the item to delete
-            const updatedHistory = existingHistory.filter((item: any) => item.id !== identificationId);
-            
-            // Save back to localStorage
-            localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
-          }
-        } catch (localStorageError) {
-          console.error('Failed to update localStorage:', localStorageError);
-        }
-        
-        return { id: identificationId, deleted: true };
-      }
+    } else {
+      console.warn('No history data in localStorage to delete from');
     }
+    
+    // Try to backup to Firebase (but don't wait for it)
+    try {
+      deleteIdentificationFirebase(username, identificationId)
+        .then(res => console.log('Deleted identification in Firebase:', res))
+        .catch(err => console.warn('Firebase delete failed:', err));
+    } catch (firebaseError) {
+      console.warn('Failed to start Firebase delete:', firebaseError);
+    }
+    
+    // Try to backup to server (but don't wait for it)
+    try {
+      fetch(`/api/users/${username}/history/${identificationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(res => {
+          if (!res.ok) {
+            console.warn(`Server backup returned ${res.status}`);
+          } else {
+            console.log('Deletion backed up to server database');
+          }
+        })
+        .catch(err => console.warn('Server backup failed:', err));
+    } catch (serverError) {
+      console.warn('Failed to start server backup:', serverError);
+    }
+    
+    return { success: true, id: identificationId, deleted: true };
   } catch (error) {
     console.error('Error deleting identification:', error);
     throw error;
